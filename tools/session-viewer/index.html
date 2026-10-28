@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Claude Code セッションビューア</title>
+  <meta name="description" content="Claude Code のセッション記録 (.jsonl) をチャットの形で読みやすく表示する HTML ファイル">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Noto+Serif+JP:wght@500;600&display=swap">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="alternate" hreflang="ja" href="https://toyoura.github.io/Tools/tools/session-viewer/">
+  <link rel="alternate" hreflang="en" href="https://toyoura.github.io/Tools/en/tools/session-viewer/">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <nav class="topbar"><a class="breadcrumb" href="../../">Lab Tools</a><a class="lang" href="../../en/tools/session-viewer/" hreflang="en" lang="en">English</a></nav>
+      <div class="tool-title">
+        <img src="../../assets/icons/session-viewer.svg" alt="">
+        <h1>Claude Code セッションビューア</h1>
+      </div>
+      <p class="lead">
+        Claude Code のセッション記録 (.jsonl) を、チャットの形で読みやすく表示する HTML ファイルです。
+        1ファイルで動き、インストールは要りません。
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap article">
+    <p>
+      Claude Code は、やりとりのすべてを <code>%USERPROFILE%\.claude\projects\&lt;プロジェクト&gt;\&lt;セッションID&gt;.jsonl</code> に1行1件の JSON で残しています。
+      このビューアはそれを読み込み、発言・思考・ツール呼び出しと結果を分けて並べます。
+    </p>
+    <p>
+      <a class="download" href="../../tools/session-viewer/claude-session-viewer.html" download>claude-session-viewer.html をダウンロード</a>
+      &nbsp; <a href="../../tools/session-viewer/sample-session.jsonl" download>試し用の sample-session.jsonl</a>
+    </p>
+
+    <figure>
+      <img src="../../tools/session-viewer/screenshot.png" alt="セッションビューアの画面。上に概要とボタン、下にユーザーと Claude の発言、思考、ツール呼び出しが並ぶ">
+      <figcaption>図1 サンプルのセッションを開いたところ。セッションの中身は架空のもの</figcaption>
+    </figure>
+
+    <h2>使い方</h2>
+    <ol>
+      <li>ダウンロードした HTML を Chrome か Edge で開きます。</li>
+      <li><code>.jsonl</code> をドロップするか、枠をクリックして選びます。</li>
+      <li>フォルダごと選ぶこともできます。<b>ログのフォルダを開く</b> で <code>%USERPROFILE%\.claude\projects\&lt;プロジェクト&gt;</code> を選ぶと、セッションが新しい順に並びます。セッションの題名、最初の発言、作業フォルダで絞り込めます。</li>
+    </ol>
+
+    <h2>表示</h2>
+    <ul>
+      <li>上の欄に、ファイル名、セッション ID、作業フォルダ、モデル、発言とツール呼び出しの回数、期間、トークン数の目安が出ます。</li>
+      <li>思考、ツール呼び出し、サブエージェント、システムイベントは、ボタンで表示を切り替えられます。</li>
+      <li>ツール呼び出しは種類ごとに見やすく表示します。Bash はコマンド、Edit は変更前と変更後、Read はファイル名です。</li>
+      <li>本文を検索すると、該当箇所に印が付き、閉じている欄も開きます。</li>
+    </ul>
+    <p>
+      トークン数は、入力 (キャッシュ作成を含む) と出力を足し合わせた目安です。キャッシュの読み込みは数えていないので、請求額とは一致しません。
+    </p>
+
+    <h2>外に送るもの</h2>
+    <p>
+      ありません。ファイルはブラウザの中で読むだけで、ネットワークには出しません。セッション記録には API キーやファイルの中身が含まれることがあるので、人に画面を見せるときは注意してください。
+    </p>
+<p>ライセンスは <a href="https://unlicense.org">The Unlicense</a> です。自由に使い、直し、配ってかまいません。無保証で、使って生じた損害は補償しません。</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="../../">一覧に戻る</a></p>
+    </div>
+  </footer>
+</body>
+</html>

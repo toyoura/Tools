@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reply LLM</title>
+  <meta name="description" content="Thunderbird の返信ウィンドウで、返信メールの下書きを LLM に書かせるアドオン">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Noto+Serif+JP:wght@500;600&display=swap">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="alternate" hreflang="ja" href="https://toyoura.github.io/Tools/tools/reply-llm/">
+  <link rel="alternate" hreflang="en" href="https://toyoura.github.io/Tools/en/tools/reply-llm/">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <nav class="topbar"><a class="breadcrumb" href="../../">Lab Tools</a><a class="lang" href="../../en/tools/reply-llm/" hreflang="en" lang="en">English</a></nav>
+      <div class="tool-title">
+        <img src="../../assets/icons/reply-llm.svg" alt="">
+        <h1>Reply LLM</h1>
+      </div>
+      <p class="lead">
+        Thunderbird の返信ウィンドウで、返信の下書きを LLM に書かせるアドオンです。
+        自分が過去に送ったメールを文体の手本として渡すので、宛名や結び、句読点の癖が自分のメールに近くなります。
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap article">
+    <p>
+      API は OpenAI と Anthropic (Claude) のどちらかを選びます。キーは自分で用意します。
+      ビルドの手順はなく、素の JavaScript で書いています。
+    </p>
+    <p>
+      <a class="download" href="reply-llm-0.1.0.xpi">reply-llm-0.1.0.xpi をダウンロード</a>
+      &nbsp; <a href="https://github.com/toyoura/Tools/tree/main/tools/reply-llm/src">ソースを見る (GitHub)</a>
+    </p>
+
+    <figure>
+      <img src="screenshot.png" width="420" alt="返信の下書きの画面。返信元のメール、方針、メモの欄と、書き上がった下書きが並ぶ">
+      <figcaption>図1 下書きを書いたところ。メールと人名は架空のもの</figcaption>
+    </figure>
+
+    <h2>動く環境</h2>
+    <ul>
+      <li>Thunderbird 128 以上</li>
+      <li>OpenAI か Anthropic の API キー</li>
+    </ul>
+
+    <h2>導入</h2>
+    <ol>
+      <li>上の xpi ファイルをダウンロードします。</li>
+      <li>Thunderbird の <b>ツール → アドオンとテーマ</b> を開き、歯車のメニューから <b>ファイルからアドオンをインストール</b> を選んで xpi を指定します。</li>
+      <li>アドオンの <b>設定</b> を開き、使う API を選んでキーを入れ、保存します。<b>接続テスト</b> でつながるか確かめられます。</li>
+    </ol>
+    <p>
+      ソースから入れる場合は、<b>ツール → 開発者ツール → アドオンをデバッグ → 一時的なアドオンを読み込む</b> で <code>src/manifest.json</code> を選びます。
+      この方法で入れたものは、Thunderbird を再起動すると消えます。xpi は <code>src/pack.ps1</code> で作れます。
+    </p>
+
+    <h2>使い方</h2>
+    <ol>
+      <li>返信 (または全員に返信) で返信ウィンドウを開きます。</li>
+      <li>ツールバーの封筒のボタン (<b>返信の下書き</b>) を押します。</li>
+      <li>表に出る返信元のメールを確かめます。同じ件名のメールが複数あっても、返信ウィンドウが持つ元メールの ID で取るので取り違えません。</li>
+      <li><b>方針</b> (引き受ける、断る、日程を調整する、など) を選び、必要なら <b>メモ</b> に事実を書きます。日程の候補や断る理由などです。</li>
+      <li><b>下書きを書く</b> (<kbd>Ctrl</kbd>+<kbd>Enter</kbd>) を押します。出てきた下書きはその場で直せます。</li>
+      <li><b>本文に挿入</b> を押すと、引用部分の上に入ります。挿入し直すと、前に挿入した下書きを置き換えます。</li>
+    </ol>
+    <p>
+      ポップアップはほかの場所をクリックすると閉じますが、方針・メモ・下書きは返信ウィンドウごとに残ります。
+    </p>
+
+    <h2>下書きの方針</h2>
+    <p>プロンプトは <a href="src/lib/prompts.js"><code>lib/prompts.js</code></a> にあります。要点は次のとおりです。</p>
+    <ul>
+      <li>宛名、名乗り、結び、句読点 (、。か ，．か) は、手本のメールに合わせる。</li>
+      <li>署名と引用は書かない。どちらも Thunderbird が付ける。</li>
+      <li>引き受けるかどうか、日程、金額など、書き手にしか決められないことは決めない。<code>[要確認: ○○]</code> と書いて残す。</li>
+      <li>元のメールとメモにない事実を作らない。</li>
+    </ul>
+    <p>
+      設定の <b>下書きへの追加指示</b> に、自分の決まりを足せます。たとえば、学生宛ては“さん”付けにする、英語のメールは Best regards で結ぶ、などです。
+    </p>
+
+    <h2>API に送るもの</h2>
+    <p class="note">
+      メールの本文と、自分が送ったメールの一部が API に送られます。学生や取引先の個人情報を含むメールもそのまま送られるので、所属先の規程と、各社の API のデータ利用方針を確かめてから使ってください。
+    </p>
+    <table>
+      <caption>表1 1回の下書きで送る内容</caption>
+      <thead><tr><th>内容</th><th>範囲</th></tr></thead>
+      <tbody>
+        <tr><td>返信元のメール</td><td>差出人・宛先・日時・件名・本文 (12,000字まで)</td></tr>
+        <tr><td>この返信の宛先</td><td>To と CC、自分の名前とアドレス</td></tr>
+        <tr><td>文体の手本</td><td>送信済みフォルダから、同じ相手に過去1年に送ったメールを新しい順に3通。本文だけで、引用と署名は削る。同じ相手に送ったことがなければ、直近2週間に送ったメールを使う</td></tr>
+        <tr><td>方針とメモ</td><td>ポップアップで選んだもの、書いたもの</td></tr>
+      </tbody>
+    </table>
+    <p>手本の数は設定で変えられます。0 にすると手本は送りません。</p>
+
+    <h2>構成</h2>
+    <table>
+      <caption>表2 ファイル構成</caption>
+      <thead><tr><th>ファイル</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td><code>manifest.json</code></td><td>権限と、返信ウィンドウのボタン (compose_action)</td></tr>
+        <tr><td><code>lib/api.js</code></td><td>OpenAI と Claude のストリーミング呼び出し。SDK を使わず fetch で書いている</td></tr>
+        <tr><td><code>lib/mail.js</code></td><td>元メールと手本の取得、本文への挿入。引用の切り方を変えるならここ</td></tr>
+        <tr><td><code>lib/prompts.js</code></td><td>方針の選択肢とプロンプト。下書きの癖を変えるならここ</td></tr>
+        <tr><td><code>lib/settings.js</code></td><td>設定の読み込み</td></tr>
+        <tr><td><code>popup/</code></td><td>ボタンを押すと出る画面</td></tr>
+        <tr><td><code>options/</code></td><td>API・キー・モデル・effort・手本の数・追加指示の設定画面</td></tr>
+        <tr><td><code>test/</code></td><td>Thunderbird なしで画面を動かすための模擬環境 (xpi には入らない)</td></tr>
+        <tr><td><code>pack.ps1</code></td><td>xpi を作る PowerShell スクリプト</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Thunderbird なしで画面を確かめる</h3>
+    <p>
+      <code>test/mock.html</code> は、Thunderbird の API と LLM の応答を模擬して、本物の <code>popup.js</code> を動かします。
+      画面やプロンプトを直したときに、Thunderbird を再起動せずに確かめられます。図1もこの画面です。
+      <code>file://</code> では動かないので、<code>src</code> でローカルサーバを立てて開きます。
+    </p>
+<pre><code>python -m http.server 8765
+# http://localhost:8765/test/mock.html を開く (?plain を付けるとテキスト形式の返信)</code></pre>
+    <p>ライセンスは <a href="https://unlicense.org">The Unlicense</a> です。自由に使い、直し、配ってかまいません。無保証で、使って生じた損害は補償しません。</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="../../">一覧に戻る</a></p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>返信の下書き</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <h1>返信の下書き</h1>
+    <span id="model" class="muted"></span>
+    <a id="openOptions" href="#">設定</a>
+  </header>
+
+  <table id="source">
+    <tr><th>返信元</th><td id="srcFrom">読み込み中…</td></tr>
+    <tr><th>件名</th><td id="srcSubject"></td></tr>
+    <tr><th>受信</th><td id="srcDate"></td></tr>
+    <tr><th>手本</th><td id="srcSamples"></td></tr>
+  </table>
+
+  <div class="field">
+    <label for="policy">方針</label>
+    <select id="policy"></select>
+  </div>
+
+  <div class="field">
+    <label for="memo">メモ (任意)</label>
+    <textarea id="memo" rows="2" placeholder="例: 来週火曜の午後なら空いている。学生には別途連絡する。"></textarea>
+  </div>
+
+  <div class="bar">
+    <button id="generate" class="primary" disabled>下書きを書く</button>
+    <button id="stop" hidden>停止</button>
+    <span id="status" class="muted"></span>
+  </div>
+
+  <textarea id="draft" rows="13" placeholder="ここに下書きが出ます。直してから本文に挿入できます。"></textarea>
+
+  <div class="bar">
+    <button id="insert" disabled>本文に挿入</button>
+    <button id="copy" disabled>コピー</button>
+    <span class="muted small">挿入し直すと、前に挿入した下書きを置き換えます。</span>
+  </div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

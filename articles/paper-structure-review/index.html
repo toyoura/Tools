@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>学生論文の構造をレビューする</title>
+  <meta name="description" content="学生の論文原稿の論理構造を、逆アウトラインと主張・根拠の対応表で見えるようにする Claude Code スキル paper-structure-review">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Noto+Serif+JP:wght@500;600&display=swap">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="alternate" hreflang="ja" href="https://toyoura.github.io/Tools/articles/paper-structure-review/">
+  <link rel="alternate" hreflang="en" href="https://toyoura.github.io/Tools/en/articles/paper-structure-review/">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <nav class="topbar"><a class="breadcrumb" href="../../">Lab Tools</a><a class="lang" href="../../en/articles/paper-structure-review/" hreflang="en" lang="en">English</a></nav>
+      <div class="tool-title">
+        <img src="../../assets/icons/paper-structure-review.svg" alt="">
+        <h1>学生論文の構造をレビューする</h1>
+      </div>
+      <p class="lead">
+        学生が書いた論文の原稿を、文面ではなく構造のレベルで赤入れするための方法です。
+        Claude Code のスキル paper-structure-review を使い、逆アウトラインと主張・根拠の対応表を作らせます。
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap article">
+    <p><a class="download" href="https://github.com/toyoura/Tools/tree/main/articles/paper-structure-review/skill">スキルを見る (GitHub)</a></p>
+
+    <h2>何が難しいか</h2>
+    <p>
+      学生の原稿で直すべきところは、誤字や言い回しよりも構造にあることが多いものです。章の順序、主張と根拠のずれ、議論の置き場所です。
+      ところが本文を頭から読みながら赤を入れると、目は文面に引っぱられます。構造の欠陥は、段落を1つずつ読んでいても見えにくいのです。
+    </p>
+
+    <h2>考え方</h2>
+    <h3>層を分ける</h3>
+    <p>
+      文面 (誤字・言い回し・LaTeX) と構造 (論理・章立て・主張の裏づけ) を混ぜて指摘すると、どちらも中途半端になります。このスキルは構造に徹します。
+      文面の指摘は別のファイルに任せ、重なる指摘には“[文面レビュー既出]”と付けます。
+    </p>
+    <h3>書き直しは学生にやらせる</h3>
+    <p>
+      スキルは修正の指示書までで止め、本文には手を付けません。学生はまずアウトラインの上で構成を直し、教員の確認を経てから本文を書き換えます。
+      構成を考える力を学生に残すための順序です。
+    </p>
+
+    <h2>出力</h2>
+    <p>原稿と同じフォルダの <code>memo/structure_review.md</code> に、決まった4部構成で書き出します。</p>
+    <table>
+      <caption>表1 structure_review.md の構成</caption>
+      <thead><tr><th>部</th><th>中身</th></tr></thead>
+      <tbody>
+        <tr><td>1. 逆アウトライン</td><td>各段落の主張を1文に縮めて、段落番号付きで並べる。重複・飛躍・順序の乱れ・中身のない節が浮かぶ</td></tr>
+        <tr><td>2. 主張と根拠の対応表</td><td>論文が掲げる主張ごとに、支える実験・図表・引用の場所を対応させ、根拠不足・矛盾・過大主張を判定する</td></tr>
+        <tr><td>3. 構造の修正指示</td><td>優先度順に S1、S2… と番号を振る。どの段落を、どこへ、なぜ動かすかを必ず書く</td></tr>
+        <tr><td>4. 使い方</td><td>教員と学生がこの文書をどう回すか</td></tr>
+      </tbody>
+    </table>
+    <p>対応表は、たとえば次のようになります (中身は架空の例です)。</p>
+    <table>
+      <caption>表2 主張と根拠の対応表の例</caption>
+      <thead><tr><th>#</th><th>主張 (場所)</th><th>根拠</th><th>判定</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td>提案法は少ないデータでも動く (1章 ¶3)</td><td>本文中になし</td><td><b>根拠不足</b>。データ量を変えた実験を足すか、主張を下げる</td></tr>
+        <tr><td>B</td><td>従来法と同等以上の精度 (要旨)</td><td>表3: 0.91 対 0.93</td><td><b>過大主張</b>。数値は従来法より低い</td></tr>
+        <tr><td>C</td><td>計算時間を半分にした (5章)</td><td>表4</td><td>OK。ただし 1章の貢献リストにない</td></tr>
+      </tbody>
+    </table>
+
+    <h2>能動的に探す欠陥</h2>
+    <p>学生の論文で繰り返し出てくるものを、スキルにチェックリストとして書いてあります。</p>
+    <ul>
+      <li>要旨と結論で最も強調している成果が、序論の貢献リストにない。逆に、貢献に挙げたのに実験で示していない。</li>
+      <li>序論で“〜を実現する”と言いながら、本文に裏づけがない。</li>
+      <li>序論の前提と、実験の結論や制限事項が食い違う。</li>
+      <li>比較対象より低い数値を主語にして“同等以上”と書く。</li>
+      <li>前振りだけで結論につながらない節、どの主張にも結びつかない実験。</li>
+      <li>考察に置くべき新しい議論が、結論に埋もれている。</li>
+      <li>手法の節と実験の節で、同じ内容を2回説明している。</li>
+      <li>段落の頭が既知の情報から始まらず、前の段落とつながらない話題が急に出てくる。</li>
+    </ul>
+
+    <h2>運用の型</h2>
+    <ol>
+      <li><b>教員</b>: S1〜Sn を承認・却下・修正する。structure_review.md に直接書き込んでよい。</li>
+      <li><b>学生</b>: 承認された指示に沿って、まず逆アウトラインの上で改訂版を作り、教員の確認を得る。構成を固めてから本文を書き換える。</li>
+      <li>誤字や表現は、文面レビューのほうに従う。</li>
+    </ol>
+    <p>
+      2回目以降は、既存の structure_review.md を上書きせず、前回から解消したものと新しく出たものだけを更新させます。
+      Overleaf と git でつないでいる原稿なら、<code>memo/structure_review.md</code> は学生と共有し、教員の私的なメモはローカルに置いておけます。
+    </p>
+
+    <h2>やらせないこと</h2>
+    <ul>
+      <li>本文 (.tex や .docx) を書き換えること。成果物は structure_review.md だけ。</li>
+      <li>表を埋めるために、原稿にない根拠を作ること。見つからなければ“本文中になし”と書く。それ自体がいちばん大事な指摘になる。</li>
+      <li>指示を“〜すること”の羅列にすること。なぜ問題かを添え、選択肢がある論点は2案で示す。</li>
+    </ul>
+
+    <h2>導入</h2>
+    <p>
+      <a href="https://github.com/toyoura/Tools/tree/main/articles/paper-structure-review/skill">SKILL.md</a> を <code>~/.claude/skills/paper-structure-review/</code> に置きます。
+      原稿のフォルダで“この論文の構成を見て”“逆アウトラインを作って”と頼むと、Claude Code がこのスキルを使います。
+      LaTeX は <code>\input</code> で分かれた原稿も1ファイルの原稿も読めます。Word の原稿は、先に本文を抜き出してから読みます。
+    </p>
+<p>ライセンスは <a href="https://unlicense.org">The Unlicense</a> です。自由に使い、直し、配ってかまいません。無保証で、使って生じた損害は補償しません。</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="../../">一覧に戻る</a></p>
+    </div>
+  </footer>
+</body>
+</html>

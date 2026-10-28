@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>Reply LLM mock</title>
+  <link rel="stylesheet" href="../popup/popup.css">
+  <style>
+    html { background: #eee; }
+    body { margin: 16px; }
+    #after, #prompt { width: 560px; margin-top: 16px; padding: 10px; background: #fff; border: 1px solid #d9d6cf; white-space: pre-wrap; font-size: 12px; }
+    #after { white-space: normal; }
+  </style>
+</head>
+<body>
+  <div id="popup"></div>
+  <h2 class="small">挿入後の本文 (setComposeDetails に渡された HTML)</h2>
+  <div id="after">(未挿入)</div>
+  <h2 class="small">API に送ったプロンプト (user)</h2>
+  <div id="prompt">(未送信)</div>
+
+  <!-- Runs the real popup.js against a fake Thunderbird API and a fake
+       streaming fetch. Open via a local HTTP server, not file://. -->
+  <script type="module">
+    import { installMocks } from "./mocks.js";
+    installMocks({
+      plain: new URLSearchParams(location.search).has("plain"),
+      onSet: (details) => {
+        document.getElementById("after").innerHTML = details.body
+          ?? `<pre>${details.plainTextBody.replace(/</g, "&lt;")}</pre>`;
+      },
+      onPrompt: (user) => { document.getElementById("prompt").textContent = user; },
+    });
+
+    const html = await (await fetch("../popup/popup.html")).text();
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    doc.querySelectorAll("script").forEach((s) => s.remove());
+    document.getElementById("popup").innerHTML = doc.body.innerHTML;
+    await import("../popup/popup.js");
+  </script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>様式つき Word 文書を Markdown で往復編集する</title>
+  <meta name="description" content="科研費の申請書のような様式つき docx を、Markdown を正本にして Claude Code で編集するスキル docx-md-roundtrip">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Noto+Serif+JP:wght@500;600&display=swap">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="alternate" hreflang="ja" href="https://toyoura.github.io/Tools/articles/docx-md-roundtrip/">
+  <link rel="alternate" hreflang="en" href="https://toyoura.github.io/Tools/en/articles/docx-md-roundtrip/">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <nav class="topbar"><a class="breadcrumb" href="../../">Lab Tools</a><a class="lang" href="../../en/articles/docx-md-roundtrip/" hreflang="en" lang="en">English</a></nav>
+      <div class="tool-title">
+        <img src="../../assets/icons/docx-md-roundtrip.svg" alt="">
+        <h1>様式つき Word 文書を Markdown で往復編集する</h1>
+      </div>
+      <p class="lead">
+        科研費の申請書のように、指示書きの枠や節ごとのページ数が決まった Word の様式を、Markdown で書いて Claude Code に反映させる方法です。
+        そのために作ったスキル docx-md-roundtrip を紹介します。
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap article">
+    <p><a class="download" href="https://github.com/toyoura/Tools/tree/main/articles/docx-md-roundtrip/skill">スキルを見る (GitHub)</a></p>
+
+    <h2>何が難しいか</h2>
+    <p>
+      申請書の様式には、節ごとの“○頁以内で記述すること”という指示書きの枠があり、空行でページが確保されています。
+      こうした docx を直接書き換え続けると、段落の書式や空行の数が少しずつずれていき、崩れが積み重なります。
+    </p>
+
+    <h2>考え方</h2>
+    <p>
+      Markdown を正本にします。記入済みの docx は直さず、毎回<b>まっさらな様式</b>に Markdown の内容を流し込んで docx を作り直します。
+      作り直すので、書式の崩れが積み重なりません。ページ割りは最後に Word を COM で動かし、節ごとの開始ページが様式どおりになるよう空行を増減して合わせます。
+    </p>
+<pre><code>申請書フォルダ/
+├── template/s-13.docx   # まっさらな様式。これは編集しない
+├── s-13.md              # 正本。ここを書く
+├── s-13.docx            # 出力。毎回作り直す
+└── figure1.png          # 挿入する図</code></pre>
+
+    <h2>Markdown の書き方</h2>
+    <p>冒頭のフロントマターに、土台にする様式と、節ごとの開始ページを書きます。</p>
+<pre><code>---
+template: template/s-13.docx
+output: s-13.docx
+page_targets: "2=6,3=8,4=9"
+line_spacing: 220
+---
+
+# section: （概要）
+
+本文の段落...
+
+# section: ５頁以内で記述すること | table
+
+## (1) 見出し
+
+![図1　研究の全体像](figure1.png){width=450}</code></pre>
+    <p>
+      <code># section:</code> の行が、様式のどこに流し込むかを決めるアンカーです。様式の中の文字列をそのまま書きます。<code>| table</code> を付けると、その文字列を含む指示書きの表の直後に入ります。
+    </p>
+    <table>
+      <caption>表1 Markdown と docx の対応</caption>
+      <thead><tr><th>Markdown</th><th>docx での見た目</th></tr></thead>
+      <tbody>
+        <tr><td><code>## (1) 見出し</code></td><td>ＭＳゴシック太字の見出し</td></tr>
+        <tr><td>ふつうの段落</td><td>明朝・1字下げ・両端揃え</td></tr>
+        <tr><td><code>**[ラベル]** 本文</code></td><td>字下げなし、太字のラベルで始まる段落</td></tr>
+        <tr><td><code>- 項目</code></td><td>“・”のぶら下げ箇条書き</td></tr>
+        <tr><td><code>[1] 著者: 題名...</code></td><td>文献リスト用の深いぶら下げ</td></tr>
+        <tr><td><code>![図1　…](x.png){width=450}</code></td><td>中央揃えの図とキャプション。幅はポイント</td></tr>
+      </tbody>
+    </table>
+
+    <h2>流れ</h2>
+    <table>
+      <caption>表2 作業と使うスクリプト</caption>
+      <thead><tr><th>作業</th><th>スクリプト</th></tr></thead>
+      <tbody>
+        <tr><td>様式の節が何ページ目から始まるかを調べる</td><td><code>get_baseline.ps1</code></td></tr>
+        <tr><td>記入済みの docx から本文を抜き出す (初回)</td><td><code>docx2md.py</code></td></tr>
+        <tr><td>Markdown から docx を作り直す</td><td><code>md2docx.py</code></td></tr>
+        <tr><td>節ごとのページ境界を合わせる</td><td><code>fit_pages.ps1</code></td></tr>
+        <tr><td>PDF にして見た目を確かめる</td><td><code>topdf.ps1</code></td></tr>
+        <tr><td>Word で手直しされた本文を Markdown に戻す</td><td><code>docx2md_sync.py</code></td></tr>
+        <tr><td>図の位置を保ったまま本文だけ差し替える</td><td><code>patch_body.py</code></td></tr>
+        <tr><td>あふれたページの行数を測る</td><td><code>lines_per_page.ps1</code></td></tr>
+      </tbody>
+    </table>
+    <p>
+      ふだんは Markdown を直して“s-13.md を docx に反映して”と頼むだけです。Claude がスキルの手順に沿って md2docx と fit_pages を走らせ、PDF にしてページ数と見た目を確かめてから報告します。
+    </p>
+
+    <h2>運用して分かったこと</h2>
+    <h3>Word での手直しは必ず Markdown に戻す</h3>
+    <p>
+      docx を Word で直接書き直すことは普通に起きます。そのまま md2docx を走らせると、手直しが消えます。
+      反映の前に docx の更新時刻を前回のビルドと比べ、新しければ先に <code>docx2md_sync.py</code> で Markdown へ取り込むよう、スキルに書いてあります。
+    </p>
+    <h3>図を手で調整したら、作り直さない</h3>
+    <p>
+      図の位置や大きさを Word で調整したあとは、作り直すと調整が消えます。そのときは <code>patch_body.py</code> で本文の段落だけを差し替え、図には触れません。
+    </p>
+    <h3>ページがあふれたら、二重に言っている箇所を削る</h3>
+    <p>
+      <code>fit_pages.ps1</code> が OVERFLOW を出したら、あふれた行数がそのまま削る量です。削る先は内容ではなく、同じ主張を2回書いている箇所を優先します。
+      申請書は、同じ主張が概要・本文・研究方法に3回出てくることが多く、たいていそこで足ります。
+    </p>
+    <h3>日本語の Windows ならではの落とし穴</h3>
+    <ul>
+      <li>Python は <code>PYTHONUTF8=1</code> を付けて動かす。付けないと cp932 で読み書きが壊れる。</li>
+      <li>docx2md.py の出力を PowerShell の <code>&gt;</code> でファイルに書かない。コンソールの文字コードを通って文字化けする。</li>
+      <li>Word COM のページ番号は、<code>Repaginate()</code> を呼ばないと古い値を返す。</li>
+      <li>対象の docx を Word で開いたままにしない。保存が衝突する。</li>
+    </ul>
+
+    <h2>動く環境と導入</h2>
+    <ul>
+      <li>Windows、Microsoft Word (ページ合わせと PDF 化に COM を使う)、Python 3 (標準ライブラリだけで動く)</li>
+      <li><a href="https://github.com/toyoura/Tools/tree/main/articles/docx-md-roundtrip/skill">skill</a> フォルダを <code>~/.claude/skills/docx-md-roundtrip/</code> として置くと、Claude Code が“申請書を更新して”“docx を Markdown にして”といった依頼でこのスキルを使います。</li>
+    </ul>
+    <p>
+      様式の空のファイルがないときは、記入済みの docx を template にしてはいけません。内容が二重になります。配布元から空の様式を取り直してください。
+    </p>
+<p>ライセンスは <a href="https://unlicense.org">The Unlicense</a> です。自由に使い、直し、配ってかまいません。無保証で、使って生じた損害は補償しません。</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="../../">一覧に戻る</a></p>
+    </div>
+  </footer>
+</body>
+</html>

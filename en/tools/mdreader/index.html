@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MdReader</title>
+  <meta name="description" content="Reads Markdown, LaTeX and text drafts aloud one sentence at a time, linked to the lines in your editor">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Noto+Serif+JP:wght@500;600&display=swap">
+  <link rel="stylesheet" href="../../../assets/style.css">
+  <link rel="alternate" hreflang="ja" href="https://toyoura.github.io/Tools/tools/mdreader/">
+  <link rel="alternate" hreflang="en" href="https://toyoura.github.io/Tools/en/tools/mdreader/">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <nav class="topbar"><a class="breadcrumb" href="../../">Lab Tools</a><a class="lang" href="../../../tools/mdreader/" hreflang="ja" lang="ja">日本語</a></nav>
+      <div class="tool-title">
+        <img src="../../../assets/icons/mdreader.svg" alt="">
+        <h1>MdReader</h1>
+      </div>
+      <p class="lead">
+        Reads your Markdown, LaTeX or text draft aloud in the browser, one sentence at a time.
+        The sentence being read is highlighted, and one click takes Cursor to that line.
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap article">
+    <p>
+      Speech comes from Microsoft Edge’s text-to-speech (edge-tts), so no API key is needed. When it is unreachable, the tool falls back to the voices built into Windows.
+      There is also an extension for those who want to stay inside Cursor (VS Code).
+      It was made for Japanese drafts, and the interface is in Japanese; English sentences are read with an English voice.
+    </p>
+    <p>
+      <a class="download" href="https://github.com/toyoura/Tools/tree/main/tools/mdreader/src">View the source (GitHub)</a>
+      &nbsp; <a href="../../../tools/mdreader/mdreader-0.1.0.vsix">Cursor extension (mdreader-0.1.0.vsix)</a>
+      &nbsp; <a href="../../../tools/mdreader/sample.md">sample.md to try</a>
+    </p>
+
+    <figure>
+      <img src="../../../tools/mdreader/screenshot.png" alt="MdReader: a table of contents on the left, the text on the right, with the current sentence highlighted">
+      <figcaption>Figure 1. Reading sample.md. Code and tables are greyed out and skipped.</figcaption>
+    </figure>
+
+    <h2>Requirements</h2>
+    <ul>
+      <li>Windows 10 / 11 (it runs elsewhere, but the speech fallback and the launcher bat are for Windows)</li>
+      <li>Python 3.10 or later, and <code>pip install edge-tts fastapi uvicorn</code></li>
+      <li>Cursor (the <code>cursor</code> command on PATH; <code>code</code> is used otherwise)</li>
+    </ul>
+
+    <h2>Starting</h2>
+    <p>
+      Put the contents of <a href="https://github.com/toyoura/Tools/tree/main/tools/mdreader/src">src</a> in one folder and drop a Markdown file onto <code>MdReader.bat</code>.
+      The first drop starts the server minimized and opens the browser. Later drops switch the open tab to the new file.
+    </p>
+<pre><code>python server.py path\to\paper.md</code></pre>
+    <p>Without an argument it opens a file picker. To quit, close the minimized console.</p>
+
+    <h2>Usage</h2>
+    <table>
+      <caption>Table 1. Keys</caption>
+      <thead><tr><th>Action</th><th>Key</th></tr></thead>
+      <tbody>
+        <tr><td>Play / pause</td><td><kbd>Space</kbd></td></tr>
+        <tr><td>Next / previous sentence</td><td><kbd>→</kbd> <kbd>←</kbd> (or <kbd>j</kbd> <kbd>k</kbd>)</td></tr>
+        <tr><td>Open the current line in Cursor</td><td><kbd>E</kbd></td></tr>
+        <tr><td>Open a file</td><td><kbd>O</kbd></td></tr>
+      </tbody>
+    </table>
+    <p>
+      Click a sentence to read from there. The table of contents jumps to sections. Speed is 0.8–2.0× without changing pitch.
+      When you save in Cursor, the page reloads the file and continues from the same sentence.
+    </p>
+
+    <h2>What is read and what is skipped</h2>
+    <table>
+      <caption>Table 2. Markdown handling</caption>
+      <thead><tr><th>Element</th><th>Handling</th></tr></thead>
+      <tbody>
+        <tr><td>Headings, paragraphs, lists, quotes</td><td>Read (markup removed)</td></tr>
+        <tr><td>Code blocks, tables, math blocks, front matter</td><td>Skipped (shown in grey)</td></tr>
+        <tr><td>Links and Obsidian <code>[[note|alias]]</code></td><td>Only the visible text is read</td></tr>
+        <tr><td>Inline math <code>$x$</code></td><td>Read as “数式” (formula)</td></tr>
+      </tbody>
+    </table>
+    <p>
+      <code>.tex</code> files open as they are. Comment lines, the preamble, figure and table environments, <code>\ref</code> and <code>\cite</code> are skipped; <code>\caption</code> and the body text are read.
+      Sentences are split at full stops, and those over 150 characters again at commas. Every sentence keeps its line range in the source file, so the highlight always matches the editor.
+    </p>
+
+    <h2>Voices</h2>
+    <p>
+      Even a Japanese paper usually has its abstract and figure captions in English. In the default “auto” mode, each sentence is checked for Japanese characters and read with a Japanese or an English voice.
+      Pick a voice from the list to use it for everything.
+    </p>
+
+    <h2>When speech synthesis stops</h2>
+    <p>
+      edge-tts is an unofficial client for Edge’s read-aloud service and can stop working when offline or when the service changes. The tool then switches to Windows SAPI and shows a notice at the top right.
+      After one failure it waits 120 seconds before trying edge-tts again. Set <code>MDREADER_TTS=sapi</code> to use SAPI from the start.
+    </p>
+
+    <h2>Cursor extension</h2>
+    <p>
+      In the Extensions view, choose “Install from VSIX” and select <code>mdreader-0.1.0.vsix</code>. The extension starts the server itself (Python and the libraries above are still needed).
+      It reads unsaved edits as they are and moves the editor cursor along with the sentence being read.
+    </p>
+    <table>
+      <caption>Table 3. Extension keys</caption>
+      <thead><tr><th>Action</th><th>Key</th></tr></thead>
+      <tbody>
+        <tr><td>Play / pause</td><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Space</kbd></td></tr>
+        <tr><td>Next / previous sentence</td><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>]</kbd> / <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>[</kbd></td></tr>
+        <tr><td>Read from the cursor</td><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Enter</kbd></td></tr>
+      </tbody>
+    </table>
+
+    <h2>What leaves your computer</h2>
+    <p class="note">
+      The sentences are sent to Microsoft’s read-aloud service for synthesis. For drafts that must not leave your machine, set <code>MDREADER_TTS=sapi</code> so that everything stays in Windows.
+    </p>
+
+    <h2>Files</h2>
+    <table>
+      <caption>Table 4. Files</caption>
+      <thead><tr><th>File</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td><code>server.py</code></td><td>FastAPI server: parsing, synthesis (cached by hash), opening the editor</td></tr>
+        <tr><td><code>mdparse.py</code></td><td>Splits Markdown and LaTeX into reading units with line numbers</td></tr>
+        <tr><td><code>static/index.html</code></td><td>The page: playback, highlight, table of contents, file watching</td></tr>
+        <tr><td><code>MdReader.bat</code>, <code>launcher.py</code></td><td>Drop target. Switches the tab if the server is already running</td></tr>
+        <tr><td><code>cursor-extension/</code></td><td>Source of the Cursor extension. <code>npm run package</code> builds the vsix</td></tr>
+        <tr><td><code>test_*.py</code></td><td>Checks for the speech fallback and the voice list</td></tr>
+      </tbody>
+    </table>
+<p>Released under <a href="https://unlicense.org">The Unlicense</a>. Use, change and share it freely. It comes with no warranty, and I am not liable for any damage caused by its use.</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="../../">Back to the list</a></p>
+    </div>
+  </footer>
+</body>
+</html>

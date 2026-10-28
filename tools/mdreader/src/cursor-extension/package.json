@@ -1,0 +1,161 @@
+{
+  "name": "mdreader",
+  "displayName": "MdReader",
+  "description": "開いている Markdown / LaTeX / テキストを読み上げ、読み上げ中の文にカーソルを合わせる",
+  "version": "0.1.0",
+  "publisher": "toyoura",
+  "license": "Unlicense",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:markdown",
+    "onLanguage:latex",
+    "onLanguage:plaintext"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "mdreader",
+          "title": "MdReader",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "mdreader": [
+        {
+          "id": "mdreader.panel",
+          "name": "読み上げ",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "mdreader.playPause",
+        "title": "MdReader: 再生 / 一時停止"
+      },
+      {
+        "command": "mdreader.next",
+        "title": "MdReader: 次の文"
+      },
+      {
+        "command": "mdreader.prev",
+        "title": "MdReader: 前の文"
+      },
+      {
+        "command": "mdreader.stop",
+        "title": "MdReader: 停止"
+      },
+      {
+        "command": "mdreader.readFromCursor",
+        "title": "MdReader: カーソル位置から読む"
+      },
+      {
+        "command": "mdreader.restartServer",
+        "title": "MdReader: サーバを再起動"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "mdreader.playPause",
+        "key": "ctrl+alt+space",
+        "when": "editorLangId == markdown || editorLangId == latex || editorLangId == plaintext"
+      },
+      {
+        "command": "mdreader.prev",
+        "key": "ctrl+alt+[",
+        "when": "editorLangId == markdown || editorLangId == latex || editorLangId == plaintext"
+      },
+      {
+        "command": "mdreader.next",
+        "key": "ctrl+alt+]",
+        "when": "editorLangId == markdown || editorLangId == latex || editorLangId == plaintext"
+      },
+      {
+        "command": "mdreader.readFromCursor",
+        "key": "ctrl+alt+enter",
+        "when": "editorLangId == markdown || editorLangId == latex || editorLangId == plaintext"
+      }
+    ],
+    "configuration": {
+      "title": "MdReader",
+      "properties": {
+        "mdreader.pythonPath": {
+          "type": "string",
+          "default": "python",
+          "description": "server.py を動かす Python の実行ファイル"
+        },
+        "mdreader.serverPath": {
+          "type": "string",
+          "default": "",
+          "description": "server.py のパス。空なら拡張に同梱の py/server.py を使う"
+        },
+        "mdreader.port": {
+          "type": "number",
+          "default": 8765,
+          "description": "読み上げサーバのポート"
+        },
+        "mdreader.voice": {
+          "type": "string",
+          "default": "auto",
+          "description": "話者。auto は文ごとに日本語と英語を切り替える。特定の声を使う場合は edge-tts の名前 (例 ja-JP-KeitaNeural, en-US-GuyNeural)"
+        },
+        "mdreader.speed": {
+          "type": "number",
+          "default": 1.4,
+          "minimum": 0.5,
+          "maximum": 3,
+          "description": "再生速度"
+        },
+        "mdreader.moveCursor": {
+          "type": "boolean",
+          "default": true,
+          "description": "読み上げ中の文にエディタのカーソルを移動する"
+        },
+        "mdreader.voiceJa": {
+          "type": "string",
+          "default": "ja-JP-NanamiNeural",
+          "description": "auto のときに日本語の文へ使う話者"
+        },
+        "mdreader.voiceEn": {
+          "type": "string",
+          "default": "en-US-AriaNeural",
+          "description": "auto のときに英語の文へ使う話者"
+        },
+        "mdreader.voiceLocales": {
+          "type": "string",
+          "default": "ja-JP,en-US,en-GB",
+          "description": "パネルの話者一覧に出すロケール"
+        }
+      }
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "mdreader.readFromCursor",
+          "when": "editorLangId == markdown || editorLangId == latex || editorLangId == plaintext",
+          "group": "navigation@9"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "npm run compile && npm run bundle && npx --yes @vscode/vsce package --no-dependencies --allow-missing-repository",
+    "bundle": "node scripts/bundle.js",
+    "test:pick": "node scripts/pick.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.7.0"
+  }
+}

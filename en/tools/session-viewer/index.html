@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Claude Code Session Viewer</title>
+  <meta name="description" content="A single HTML file that shows Claude Code session logs (.jsonl) as a readable chat">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Noto+Serif+JP:wght@500;600&display=swap">
+  <link rel="stylesheet" href="../../../assets/style.css">
+  <link rel="alternate" hreflang="ja" href="https://toyoura.github.io/Tools/tools/session-viewer/">
+  <link rel="alternate" hreflang="en" href="https://toyoura.github.io/Tools/en/tools/session-viewer/">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <nav class="topbar"><a class="breadcrumb" href="../../">Lab Tools</a><a class="lang" href="../../../tools/session-viewer/" hreflang="ja" lang="ja">日本語</a></nav>
+      <div class="tool-title">
+        <img src="../../../assets/icons/session-viewer.svg" alt="">
+        <h1>Claude Code Session Viewer</h1>
+      </div>
+      <p class="lead">
+        A single HTML file that shows Claude Code session logs (.jsonl) as a readable chat.
+        Nothing to install.
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap article">
+    <p>
+      Claude Code keeps every session in <code>%USERPROFILE%\.claude\projects\&lt;project&gt;\&lt;session-id&gt;.jsonl</code>, one JSON record per line.
+      This viewer reads that file and lays out messages, thinking, tool calls and their results separately.
+      The interface is in Japanese.
+    </p>
+    <p>
+      <a class="download" href="../../../tools/session-viewer/claude-session-viewer.html" download>Download claude-session-viewer.html</a>
+      &nbsp; <a href="../../../tools/session-viewer/sample-session.jsonl" download>sample-session.jsonl to try</a>
+    </p>
+
+    <figure>
+      <img src="../../../tools/session-viewer/screenshot.png" alt="The viewer: a summary and buttons at the top, then user and Claude messages, thinking and tool calls">
+      <figcaption>Figure 1. The sample session. Its contents are fictional.</figcaption>
+    </figure>
+
+    <h2>Usage</h2>
+    <ol>
+      <li>Open the downloaded HTML in Chrome or Edge.</li>
+      <li>Drop a <code>.jsonl</code> file, or click the box to choose one.</li>
+      <li>You can also pick a whole folder. Choose <code>%USERPROFILE%\.claude\projects\&lt;project&gt;</code> with the first folder button (ログのフォルダを開く) to list its sessions, newest first. Filter them by title, first message or working folder.</li>
+    </ol>
+
+    <h2>What it shows</h2>
+    <ul>
+      <li>The top panel shows the file name, session ID, working folder, model, number of messages and tool calls, duration and a rough token count.</li>
+      <li>Buttons toggle thinking, tool calls, subagents and system events.</li>
+      <li>Tool calls are shown by type: the command for Bash, before and after for Edit, the file name for Read.</li>
+      <li>Search marks every match and opens the collapsed blocks that contain one.</li>
+    </ul>
+    <p>
+      The token count adds input (including cache creation) and output. Cache reads are not counted, so it will not match your bill.
+    </p>
+
+    <h2>What leaves your computer</h2>
+    <p>
+      Nothing. The file is read inside the browser and never sent anywhere. Session logs can contain API keys and file contents, so take care when you show the screen to others.
+    </p>
+<p>Released under <a href="https://unlicense.org">The Unlicense</a>. Use, change and share it freely. It comes with no warranty, and I am not liable for any damage caused by its use.</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="../../">Back to the list</a></p>
+    </div>
+  </footer>
+</body>
+</html>

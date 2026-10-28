@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gemini TTS Narration</title>
+  <meta name="description" content="A Python script that turns a text file into a narration mp3 with the Gemini speech API">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Noto+Serif+JP:wght@500;600&display=swap">
+  <link rel="stylesheet" href="../../../assets/style.css">
+  <link rel="alternate" hreflang="ja" href="https://toyoura.github.io/Tools/tools/gemini-tts/">
+  <link rel="alternate" hreflang="en" href="https://toyoura.github.io/Tools/en/tools/gemini-tts/">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <nav class="topbar"><a class="breadcrumb" href="../../">Lab Tools</a><a class="lang" href="../../../tools/gemini-tts/" hreflang="ja" lang="ja">日本語</a></nav>
+      <div class="tool-title">
+        <img src="../../../assets/icons/gemini-tts.svg" alt="">
+        <h1>Gemini TTS Narration</h1>
+      </div>
+      <p class="lead">
+        A short Python script that turns a text file into a narration mp3 with the Gemini speech generation API.
+        I wrote it to make English narration.
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap article">
+    <p><a class="download" href="../../../tools/gemini-tts/src/tts_generate.py" download>Download tts_generate.py</a></p>
+
+    <h2>Requirements</h2>
+    <ul>
+      <li>Python 3 and <code>pip install google-genai</code></li>
+      <li>ffmpeg on PATH (to convert wav to mp3)</li>
+      <li>A Gemini API key in <code>GEMINI_API_KEY</code> or <code>GOOGLE_API_KEY</code></li>
+    </ul>
+
+    <h2>Usage</h2>
+    <p>Write the text in a file and pass it with an output name (without extension).</p>
+<pre><code>python tts_generate.py narration script.txt</code></pre>
+    <p><code>narration.wav</code> and <code>narration.mp3</code> are written to the current folder.</p>
+
+    <h2>How it works</h2>
+    <ul>
+      <li>The model is <code>gemini-2.5-flash-preview-tts</code> with the voice <code>Kore</code>. Change <code>VOICE_NAME</code> at the top of the script to use another voice; the list is in Google’s <a href="https://ai.google.dev/gemini-api/docs/speech-generation">speech generation docs</a>.</li>
+      <li>The API returns 24 kHz mono 16-bit PCM. The script wraps it in a wav file and converts it to mp3 (VBR, quality 2) with ffmpeg.</li>
+      <li>The whole text goes in one request. For a long script, one file per paragraph is easier to handle.</li>
+    </ul>
+
+    <h2>What leaves your computer</h2>
+    <p>The contents of the text file are sent to Google’s Gemini API.</p>
+<p>Released under <a href="https://unlicense.org">The Unlicense</a>. Use, change and share it freely. It comes with no warranty, and I am not liable for any damage caused by its use.</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="../../">Back to the list</a></p>
+    </div>
+  </footer>
+</body>
+</html>

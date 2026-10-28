@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ClipTranslate</title>
+  <meta name="description" content="A Windows tray tool that translates the clipboard between Japanese and English with one hotkey">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Noto+Serif+JP:wght@500;600&display=swap">
+  <link rel="stylesheet" href="../../../assets/style.css">
+  <link rel="alternate" hreflang="ja" href="https://toyoura.github.io/Tools/tools/cliptranslate/">
+  <link rel="alternate" hreflang="en" href="https://toyoura.github.io/Tools/en/tools/cliptranslate/">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <nav class="topbar"><a class="breadcrumb" href="../../">Lab Tools</a><a class="lang" href="../../../tools/cliptranslate/" hreflang="ja" lang="ja">日本語</a></nav>
+      <div class="tool-title">
+        <img src="../../../assets/icons/cliptranslate.svg" alt="">
+        <h1>ClipTranslate</h1>
+      </div>
+      <p class="lead">
+        Copy some text, press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd>, and the clipboard now holds the translation.
+        Japanese goes to English and English goes to Japanese. Paste it with <kbd>Ctrl</kbd>+<kbd>V</kbd>.
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap article">
+    <p>
+      ClipTranslate runs in the Windows system tray. It calls the OpenAI or Anthropic (Claude) API with your own key.
+      There is no window: you see only the tray icon and Windows notifications.
+      The menu and notifications are in Japanese.
+    </p>
+    <p><a class="download" href="https://github.com/toyoura/Tools/tree/main/tools/cliptranslate/src">View the source (GitHub)</a></p>
+
+    <h2>Requirements</h2>
+    <ul>
+      <li>Windows 10 / 11</li>
+      <li>Python 3.9 or later (started with <code>pythonw</code>)</li>
+      <li>An OpenAI or Anthropic API key</li>
+    </ul>
+
+    <h2>Setup</h2>
+    <ol>
+      <li>
+        Put <a href="../../../tools/cliptranslate/src/cliptranslate.py">cliptranslate.py</a>, <a href="../../../tools/cliptranslate/src/start.cmd">start.cmd</a> and <a href="../../../tools/cliptranslate/src/requirements.txt">requirements.txt</a> in one folder.
+      </li>
+      <li>
+        Install the libraries for the tray icon (pystray and Pillow).
+        <pre><code>python -m pip install -r requirements.txt</code></pre>
+      </li>
+      <li>
+        Set your API key as a user environment variable: <code>OPENAI_API_KEY</code> for OpenAI, <code>ANTHROPIC_API_KEY</code> for Claude.
+        <pre><code>setx OPENAI_API_KEY "sk-..."</code></pre>
+        The tool also reads the variable from the registry, so it works even when started from a process that was open before you set it.
+      </li>
+      <li>Run <code>start.cmd</code>. A navy icon with two arrows appears in the tray.</li>
+    </ol>
+    <p>
+      To start it with Windows, press <kbd>Win</kbd>+<kbd>R</kbd>, open <code>shell:startup</code>, and put a shortcut to <code>start.cmd</code> there.
+    </p>
+
+    <h2>Usage</h2>
+    <p>
+      Copy the text and press the hotkey. The icon turns dark red while the request is running, and a notification shows the start of the translation when it is done.
+      A short sentence takes about two seconds. Right-click the tray icon for this menu:
+    </p>
+    <table>
+      <caption>Table 1. Tray menu</caption>
+      <thead><tr><th>Item</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td>Translate clipboard (クリップボードを翻訳)</td><td>Same as the hotkey. A left click on the icon does this too</td></tr>
+        <tr><td>Restore original (元の文に戻す)</td><td>Puts the text you last translated back on the clipboard</td></tr>
+        <tr><td>Quit (終了)</td><td>Stops the tool</td></tr>
+      </tbody>
+    </table>
+    <p>If you start it twice, the second copy exits without doing anything.</p>
+
+    <h2>Settings</h2>
+    <p>
+      Put a <code>config.json</code> next to <code>cliptranslate.py</code> to override the defaults. Only the keys you write are changed.
+    </p>
+<pre><code>{
+  "provider": "openai",
+  "openai_model": "gpt-5.6-terra",
+  "claude_model": "claude-opus-5",
+  "effort": "low",
+  "hotkey": "ctrl+alt+t",
+  "extra": "",
+  "timeout": 120
+}</code></pre>
+    <table>
+      <caption>Table 2. Settings</caption>
+      <thead><tr><th>Key</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>provider</code></td><td><code>openai</code> or <code>claude</code></td></tr>
+        <tr><td><code>effort</code></td><td><code>low</code> / <code>medium</code> / <code>high</code>. The default is <code>low</code> so that you are not kept waiting after the hotkey</td></tr>
+        <tr><td><code>hotkey</code></td><td>Modifiers (<code>ctrl</code> <code>alt</code> <code>shift</code> <code>win</code>) and one letter, digit or <code>f1</code>–<code>f24</code>, joined with <code>+</code></td></tr>
+        <tr><td><code>extra</code></td><td>Extra instructions added to the system prompt, for example to fix how certain terms are translated</td></tr>
+        <tr><td><code>timeout</code></td><td>Seconds to wait for the API</td></tr>
+      </tbody>
+    </table>
+    <p>After changing the settings, quit from the tray and run <code>start.cmd</code> again.</p>
+
+    <h2>How it translates</h2>
+    <h3>The tool picks the direction</h3>
+    <p>
+      The direction is decided before the request, not by the model.
+      If four times the number of kana and kanji is at least the number of Latin letters, the text is treated as Japanese.
+      One Japanese character carries about as much as one English word, so Japanese text full of English technical terms still counts as Japanese.
+    </p>
+    <h3>The register follows the source</h3>
+    <p>
+      Papers and reports are translated into the plain written style of Japanese (<i>de-aru</i>); letters and emails into the polite style (<i>desu/masu</i>).
+    </p>
+    <h3>PDF line breaks are left to the model</h3>
+    <p>
+      Text copied from a PDF has line breaks in the middle of sentences and words split by hyphens. The tool sends it as is and tells the model to join the lines before translating.
+    </p>
+    <h3>Instructions inside the text are not followed</h3>
+    <p>
+      If the copied text contains something like “Summarize the following”, the prompt says to translate it as text, not to obey it.
+    </p>
+
+    <h2>What is sent to the API</h2>
+    <p class="note">
+      The clipboard text is sent to the API as is. Before translating confidential documents or personal data, check your organization’s rules and the provider’s data usage policy.
+    </p>
+    <p>
+      The log (<code>cliptranslate.log</code>) records only start-up, the direction and length of each translation, and errors. It never stores the source text or the translation.
+    </p>
+
+    <h2>Files</h2>
+    <table>
+      <caption>Table 3. Files</caption>
+      <thead><tr><th>File</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td><a href="../../../tools/cliptranslate/src/cliptranslate.py"><code>cliptranslate.py</code></a></td><td>The tool itself (about 480 lines). The clipboard and hotkey use the Win32 API through ctypes; HTTP uses the standard library’s urllib</td></tr>
+        <tr><td><a href="../../../tools/cliptranslate/src/start.cmd"><code>start.cmd</code></a></td><td>Starts it with <code>pythonw</code>, without a console window</td></tr>
+        <tr><td><a href="../../../tools/cliptranslate/src/requirements.txt"><code>requirements.txt</code></a></td><td>pystray and Pillow</td></tr>
+      </tbody>
+    </table>
+    <p>Released under <a href="https://unlicense.org">The Unlicense</a>. Use, change and share it freely. It comes with no warranty, and I am not liable for any damage caused by its use.</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="../../">Back to the list</a></p>
+    </div>
+  </footer>
+</body>
+</html>

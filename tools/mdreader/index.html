@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MdReader</title>
+  <meta name="description" content="Markdown・LaTeX・テキストの原稿を1文ずつ読み上げ、読んでいる文をエディタの行と対応させるツール">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Noto+Serif+JP:wght@500;600&display=swap">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="alternate" hreflang="ja" href="https://toyoura.github.io/Tools/tools/mdreader/">
+  <link rel="alternate" hreflang="en" href="https://toyoura.github.io/Tools/en/tools/mdreader/">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <nav class="topbar"><a class="breadcrumb" href="../../">Lab Tools</a><a class="lang" href="../../en/tools/mdreader/" hreflang="en" lang="en">English</a></nav>
+      <div class="tool-title">
+        <img src="../../assets/icons/mdreader.svg" alt="">
+        <h1>MdReader</h1>
+      </div>
+      <p class="lead">
+        Markdown・LaTeX・テキストの原稿を、ブラウザで1文ずつ読み上げるツールです。
+        読んでいる文に色が付き、気になった箇所はクリック1つで Cursor のその行に飛べます。
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap article">
+    <p>
+      音声は Microsoft Edge の読み上げ (edge-tts) を使うので、API キーは要りません。つながらないときは Windows 標準の音声に切り替わります。
+      Cursor (VS Code) の中で完結させたい人向けに、拡張版も用意しました。
+    </p>
+    <p>
+      <a class="download" href="https://github.com/toyoura/Tools/tree/main/tools/mdreader/src">ソースを見る (GitHub)</a>
+      &nbsp; <a href="../../tools/mdreader/mdreader-0.1.0.vsix">Cursor 拡張 (mdreader-0.1.0.vsix)</a>
+      &nbsp; <a href="../../tools/mdreader/sample.md">試し読み用の sample.md</a>
+    </p>
+
+    <figure>
+      <img src="../../tools/mdreader/screenshot.png" alt="MdReader の画面。左に目次、右に本文があり、読んでいる文に色が付いている">
+      <figcaption>図1 sample.md を読んでいるところ。コードと表は灰色で表示し、読み飛ばす</figcaption>
+    </figure>
+
+    <h2>動く環境</h2>
+    <ul>
+      <li>Windows 10 / 11 (ほかの OS でも動きますが、音声の切り替えと起動用の bat は Windows 向けです)</li>
+      <li>Python 3.10 以上と、<code>pip install edge-tts fastapi uvicorn</code></li>
+      <li>Cursor (<code>cursor</code> コマンドが PATH にあること。なければ <code>code</code> を使います)</li>
+    </ul>
+
+    <h2>起動</h2>
+    <p>
+      <a href="https://github.com/toyoura/Tools/tree/main/tools/mdreader/src">src</a> の中身を1つのフォルダに置き、<code>MdReader.bat</code> に Markdown ファイルをドロップします。
+      1回目はサーバが最小化された状態で立ち上がり、ブラウザが開きます。2回目からのドロップは、開いているタブがそのファイルに切り替わります。
+    </p>
+<pre><code>python server.py path\to\paper.md</code></pre>
+    <p>引数なしで起動するとファイル選択の画面が出ます。終わるときは、最小化されているコンソールを閉じます。</p>
+
+    <h2>使い方</h2>
+    <table>
+      <caption>表1 キー操作</caption>
+      <thead><tr><th>操作</th><th>キー</th></tr></thead>
+      <tbody>
+        <tr><td>再生 / 一時停止</td><td><kbd>Space</kbd></td></tr>
+        <tr><td>次の文 / 前の文</td><td><kbd>→</kbd> <kbd>←</kbd> (または <kbd>j</kbd> <kbd>k</kbd>)</td></tr>
+        <tr><td>いま読んでいる行を Cursor で開く</td><td><kbd>E</kbd></td></tr>
+        <tr><td>ファイルを開く</td><td><kbd>O</kbd></td></tr>
+      </tbody>
+    </table>
+    <p>
+      本文の文をクリックすると、そこから読み直します。左の目次で節へ飛べます。速度は 0.8〜2.0 倍で、ピッチは変わりません。
+      Cursor で保存すると自動で読み込み直し、同じ文から続きを読みます。
+    </p>
+
+    <h2>何を読み、何を飛ばすか</h2>
+    <table>
+      <caption>表2 Markdown の扱い</caption>
+      <thead><tr><th>要素</th><th>扱い</th></tr></thead>
+      <tbody>
+        <tr><td>見出し・段落・箇条書き・引用</td><td>読む (記号は除く)</td></tr>
+        <tr><td>コードブロック・表・数式ブロック・フロントマター</td><td>飛ばす (灰色で表示)</td></tr>
+        <tr><td>リンク、Obsidian の <code>[[note|alias]]</code></td><td>表示テキストだけ読む</td></tr>
+        <tr><td>インライン数式 <code>$x$</code></td><td>“数式”と読む</td></tr>
+      </tbody>
+    </table>
+    <p>
+      <code>.tex</code> もそのまま開けます。<code>%</code> のコメント行、プリアンブル、figure や table の環境、<code>\ref</code> や <code>\cite</code> は飛ばし、<code>\caption</code> と本文だけを読みます。
+      文は句点で区切り、150字を超えるときは読点でさらに割ります。どの文も元のファイルの行範囲を持っているので、ハイライトとエディタの行がずれません。
+    </p>
+
+    <h2>声の選び方</h2>
+    <p>
+      日本語の原稿でも、Abstract や図のキャプションは英語で書くことが多いものです。既定の“自動”では文ごとに日本語の文字を含むかを見て、日本語の声と英語の声を切り替えます。
+      一覧から特定の声を選べば、常にその声で読みます。
+    </p>
+
+    <h2>音声合成が止まったとき</h2>
+    <p>
+      edge-tts は Edge の読み上げを使う非公式のクライアントなので、オフラインや仕様変更で止まることがあります。そのときは Windows 標準の SAPI に自動で切り替わり、画面の右上に注意が出ます。
+      一度失敗すると、120秒は edge-tts を試しません。環境変数 <code>MDREADER_TTS=sapi</code> で、はじめから SAPI に固定できます。
+    </p>
+
+    <h2>Cursor 拡張</h2>
+    <p>
+      拡張機能の画面で “VSIX からインストール” を選び、<code>mdreader-0.1.0.vsix</code> を指定します。サーバは拡張が自分で起動します (Python と上記のライブラリは必要です)。
+      拡張版は保存前の編集もそのまま読み、読んでいる文にエディタのカーソルが乗ります。
+    </p>
+    <table>
+      <caption>表3 拡張のキー操作</caption>
+      <thead><tr><th>操作</th><th>キー</th></tr></thead>
+      <tbody>
+        <tr><td>再生 / 一時停止</td><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Space</kbd></td></tr>
+        <tr><td>次の文 / 前の文</td><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>]</kbd> / <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>[</kbd></td></tr>
+        <tr><td>カーソル位置から読む</td><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Enter</kbd></td></tr>
+      </tbody>
+    </table>
+
+    <h2>外に送るもの</h2>
+    <p class="note">
+      読み上げる文は、音声合成のために Microsoft の読み上げサービスへ送られます。外に出せない原稿は、<code>MDREADER_TTS=sapi</code> で Windows 内だけで読ませてください。
+    </p>
+
+    <h2>ファイル</h2>
+    <table>
+      <caption>表4 ファイル構成</caption>
+      <thead><tr><th>ファイル</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td><code>server.py</code></td><td>FastAPI のサーバ。解析、音声合成 (ハッシュでキャッシュ)、エディタを開く処理</td></tr>
+        <tr><td><code>mdparse.py</code></td><td>Markdown と LaTeX を行番号付きの読み上げ単位に分ける</td></tr>
+        <tr><td><code>static/index.html</code></td><td>再生・ハイライト・目次・ファイル監視の画面</td></tr>
+        <tr><td><code>MdReader.bat</code>、<code>launcher.py</code></td><td>ドロップの受け口。サーバが動いていればタブを切り替える</td></tr>
+        <tr><td><code>cursor-extension/</code></td><td>Cursor 拡張のソース。<code>npm run package</code> で vsix を作る</td></tr>
+        <tr><td><code>test_*.py</code></td><td>音声合成の切り替えと話者一覧の確認</td></tr>
+      </tbody>
+    </table>
+<p>ライセンスは <a href="https://unlicense.org">The Unlicense</a> です。自由に使い、直し、配ってかまいません。無保証で、使って生じた損害は補償しません。</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="../../">一覧に戻る</a></p>
+    </div>
+  </footer>
+</body>
+</html>

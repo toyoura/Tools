@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lab Tools</title>
+  <meta name="description" content="大学教員が Claude Code と作った、翻訳・校正・授業運営などの小さなツールの一覧">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Noto+Serif+JP:wght@500;600&display=swap">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="alternate" hreflang="ja" href="https://toyoura.github.io/Tools/">
+  <link rel="alternate" hreflang="en" href="https://toyoura.github.io/Tools/en/">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <nav class="topbar"><span></span><a class="lang" href="en/" hreflang="en" lang="en">English</a></nav>
+      <h1>Lab Tools</h1>
+      <p class="lead">
+        大学で研究と授業をしながら、Claude Code と作ってきたツールを置いています。
+        あなたの Claude Code や OpenAI Codex に読ませれば、あなたの環境で動くものを作ってくれることでしょう。
+        アイコンを押すと、それぞれの説明ページに移ります。
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section aria-labelledby="tools-heading">
+      <h2 id="tools-heading">ツール</h2>
+
+      <ul class="tool-grid">
+        <!--
+          1 ツール = 1 項目。アイコンは assets/icons/<name>.svg、説明ページは tools/<name>/index.html に置く。
+
+          <li>
+            <a class="tool" href="tools/kotoba/">
+              <img class="tool-icon" src="assets/icons/kotoba.svg" alt="">
+              <span class="tool-name">Kotoba</span>
+              <span class="tool-desc">翻訳と校正の Chrome 拡張</span>
+            </a>
+          </li>
+        -->
+        <li>
+          <a class="tool" href="tools/cliptranslate/">
+            <img class="tool-icon" src="assets/icons/cliptranslate.svg" alt="">
+            <span class="tool-name">ClipTranslate</span>
+            <span class="tool-desc">クリップボードをホットキーで日英翻訳</span>
+          </a>
+        </li>
+        <li>
+          <a class="tool" href="tools/reply-llm/">
+            <img class="tool-icon" src="assets/icons/reply-llm.svg" alt="">
+            <span class="tool-name">Reply LLM</span>
+            <span class="tool-desc">Thunderbird で返信の下書きを書く</span>
+          </a>
+        </li>
+        <li>
+          <a class="tool" href="tools/mdreader/">
+            <img class="tool-icon" src="assets/icons/mdreader.svg" alt="">
+            <span class="tool-name">MdReader</span>
+            <span class="tool-desc">原稿を1文ずつ読み上げる</span>
+          </a>
+        </li>
+        <li>
+          <a class="tool" href="tools/session-viewer/">
+            <img class="tool-icon" src="assets/icons/session-viewer.svg" alt="">
+            <span class="tool-name">セッションビューア</span>
+            <span class="tool-desc">Claude Code の記録をチャットの形で読む</span>
+          </a>
+        </li>
+        <li>
+          <a class="tool" href="tools/gemini-tts/">
+            <img class="tool-icon" src="assets/icons/gemini-tts.svg" alt="">
+            <span class="tool-name">Gemini TTS</span>
+            <span class="tool-desc">テキストからナレーションの mp3 を作る</span>
+          </a>
+        </li>
+      </ul>
+
+      <p class="empty-note">ツールはまだ登録されていません。</p>
+    </section>
+
+    <section class="section-gap" aria-labelledby="knowhow-heading">
+      <h2 id="knowhow-heading">Claude Code の運用ノウハウ</h2>
+
+      <ul class="tool-grid">
+        <li>
+          <a class="tool" href="articles/docx-md-roundtrip/">
+            <img class="tool-icon" src="assets/icons/docx-md-roundtrip.svg" alt="">
+            <span class="tool-name">docx-md-roundtrip</span>
+            <span class="tool-desc">様式つき Word 文書を Markdown で往復編集する</span>
+          </a>
+        </li>
+        <li>
+          <a class="tool" href="articles/paper-structure-review/">
+            <img class="tool-icon" src="assets/icons/paper-structure-review.svg" alt="">
+            <span class="tool-name">paper-structure-review</span>
+            <span class="tool-desc">学生論文の構造をレビューする</span>
+          </a>
+        </li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="https://www.design.yamanashi.ac.jp/ja/toyoura/">研究室のサイト</a></p>
+    </div>
+  </footer>
+</body>
+</html>

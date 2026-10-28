@@ -1,0 +1,35 @@
+{
+  "manifest_version": 2,
+  "name": "Reply LLM",
+  "version": "0.1.0",
+  "description": "返信メールの下書きを書く (OpenAI / Claude API)",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "reply-llm@toyoura.local",
+      "strict_min_version": "128.0"
+    }
+  },
+  "icons": {
+    "32": "icon.svg",
+    "64": "icon.svg"
+  },
+  "permissions": [
+    "compose",
+    "messagesRead",
+    "accountsRead",
+    "storage",
+    "clipboardWrite",
+    "https://api.openai.com/*",
+    "https://api.anthropic.com/*"
+  ],
+  "compose_action": {
+    "default_title": "返信の下書き",
+    "default_popup": "popup/popup.html",
+    "default_icon": "icon.svg",
+    "default_area": "maintoolbar"
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  }
+}

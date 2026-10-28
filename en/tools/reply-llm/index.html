@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reply LLM</title>
+  <meta name="description" content="A Thunderbird add-on that drafts email replies with an LLM, in your own style">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Noto+Serif+JP:wght@500;600&display=swap">
+  <link rel="stylesheet" href="../../../assets/style.css">
+  <link rel="alternate" hreflang="ja" href="https://toyoura.github.io/Tools/tools/reply-llm/">
+  <link rel="alternate" hreflang="en" href="https://toyoura.github.io/Tools/en/tools/reply-llm/">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <nav class="topbar"><a class="breadcrumb" href="../../">Lab Tools</a><a class="lang" href="../../../tools/reply-llm/" hreflang="ja" lang="ja">日本語</a></nav>
+      <div class="tool-title">
+        <img src="../../../assets/icons/reply-llm.svg" alt="">
+        <h1>Reply LLM</h1>
+      </div>
+      <p class="lead">
+        A Thunderbird add-on that drafts your reply from the compose window.
+        It shows the model a few emails you have sent before, so the greeting, the closing and the punctuation come out close to how you write.
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap article">
+    <p>
+      It calls the OpenAI or Anthropic (Claude) API with your own key.
+      It is plain JavaScript with no build step.
+      The user interface is in Japanese; drafts are written in the language of the email you are replying to.
+    </p>
+    <p>
+      <a class="download" href="../../../tools/reply-llm/reply-llm-0.1.0.xpi">Download reply-llm-0.1.0.xpi</a>
+      &nbsp; <a href="https://github.com/toyoura/Tools/tree/main/tools/reply-llm/src">View the source (GitHub)</a>
+    </p>
+
+    <figure>
+      <img src="../../../tools/reply-llm/screenshot.png" width="420" alt="The draft window: the original email, the policy and memo fields, and the finished draft">
+      <figcaption>Figure 1. A finished draft. The email and the names are fictional.</figcaption>
+    </figure>
+
+    <h2>Requirements</h2>
+    <ul>
+      <li>Thunderbird 128 or later</li>
+      <li>An OpenAI or Anthropic API key</li>
+    </ul>
+
+    <h2>Setup</h2>
+    <ol>
+      <li>Download the xpi file above.</li>
+      <li>In Thunderbird, open <b>Tools → Add-ons and Themes</b>, choose <b>Install Add-on From File</b> from the gear menu, and select the xpi.</li>
+      <li>Open the add-on’s <b>Options</b>, pick the API, enter your key and save. The connection test button (接続テスト) checks that the key works.</li>
+    </ol>
+    <p>
+      To run it from source, use <b>Tools → Developer Tools → Debug Add-ons → Load Temporary Add-on</b> and select <code>src/manifest.json</code>.
+      An add-on loaded this way is removed when Thunderbird restarts. <code>src/pack.ps1</code> builds the xpi.
+    </p>
+
+    <h2>Usage</h2>
+    <ol>
+      <li>Open a reply (or reply-all) window.</li>
+      <li>Click the envelope button (返信の下書き) in the toolbar.</li>
+      <li>Check the original email shown in the table. The add-on uses the message ID held by the reply window, so it picks the right email even when several share the subject.</li>
+      <li>Choose a <b>policy</b> (方針) (accept, decline, propose a date, and so on) and, if needed, write the facts in the <b>memo</b> (メモ): candidate dates, a reason for declining, etc.</li>
+      <li>Click <b>Write draft</b> (下書きを書く, <kbd>Ctrl</kbd>+<kbd>Enter</kbd>). You can edit the draft in place.</li>
+      <li><b>Insert</b> (本文に挿入) puts it above the quoted text. Inserting again replaces the previous draft.</li>
+    </ol>
+    <p>
+      The popup closes when you click elsewhere, but the policy, memo and draft are kept for each reply window.
+    </p>
+
+    <h2>How drafts are written</h2>
+    <p>The prompt is in <a href="../../../tools/reply-llm/src/lib/prompts.js"><code>lib/prompts.js</code></a>. In short:</p>
+    <ul>
+      <li>The greeting, self-introduction, closing and punctuation follow your sample emails.</li>
+      <li>No signature and no quote: Thunderbird adds both.</li>
+      <li>Things only you can decide, such as whether to accept, dates or amounts, are not decided. They are left as <code>[要確認: …]</code> (“to confirm”).</li>
+      <li>No facts that are not in the original email or your memo.</li>
+    </ul>
+    <p>
+      You can add your own rules in <b>Extra instructions</b> (下書きへの追加指示) in the options, for example “end English emails with Best regards”.
+    </p>
+
+    <h2>What is sent to the API</h2>
+    <p class="note">
+      The email and parts of emails you have sent are sent to the API. Emails that contain personal data of students or business partners are sent as they are. Check your organization’s rules and the provider’s data usage policy before using it.
+    </p>
+    <table>
+      <caption>Table 1. What one draft sends</caption>
+      <thead><tr><th>Content</th><th>Scope</th></tr></thead>
+      <tbody>
+        <tr><td>The email you are replying to</td><td>Sender, recipients, date, subject and body (up to 12,000 characters)</td></tr>
+        <tr><td>Recipients of this reply</td><td>To and CC, and your own name and address</td></tr>
+        <tr><td>Style samples</td><td>The three newest emails you sent to the same person in the past year, from the Sent folder. Body only, with quotes and signature removed. If you have never written to that person, emails you sent in the past two weeks are used instead</td></tr>
+        <tr><td>Policy and memo</td><td>What you chose and wrote in the popup</td></tr>
+      </tbody>
+    </table>
+    <p>The number of samples can be changed in the options. Set it to 0 to send none.</p>
+
+    <h2>Files</h2>
+    <table>
+      <caption>Table 2. Files</caption>
+      <thead><tr><th>File</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td><code>manifest.json</code></td><td>Permissions and the compose window button (compose_action)</td></tr>
+        <tr><td><code>lib/api.js</code></td><td>Streaming calls to OpenAI and Claude, written with fetch instead of an SDK</td></tr>
+        <tr><td><code>lib/mail.js</code></td><td>Reads the original email and the samples, and inserts the draft. Change this to adjust how quotes are cut</td></tr>
+        <tr><td><code>lib/prompts.js</code></td><td>Policy options and the prompt. Change this to adjust how drafts read</td></tr>
+        <tr><td><code>lib/settings.js</code></td><td>Loads the settings</td></tr>
+        <tr><td><code>popup/</code></td><td>The window opened by the button</td></tr>
+        <tr><td><code>options/</code></td><td>Settings for API, key, model, effort, number of samples and extra instructions</td></tr>
+        <tr><td><code>test/</code></td><td>A mock environment that runs the popup without Thunderbird (not included in the xpi)</td></tr>
+        <tr><td><code>pack.ps1</code></td><td>PowerShell script that builds the xpi</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Trying the popup without Thunderbird</h3>
+    <p>
+      <code>test/mock.html</code> fakes the Thunderbird API and the LLM response and runs the real <code>popup.js</code>.
+      You can check changes to the popup or the prompt without restarting Thunderbird. Figure 1 was taken from this page.
+      It does not work over <code>file://</code>, so start a local server in <code>src</code>:
+    </p>
+<pre><code>python -m http.server 8765
+# open http://localhost:8765/test/mock.html (add ?plain for a plain-text reply)</code></pre>
+    <p>Released under <a href="https://unlicense.org">The Unlicense</a>. Use, change and share it freely. It comes with no warranty, and I am not liable for any damage caused by its use.</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="../../">Back to the list</a></p>
+    </div>
+  </footer>
+</body>
+</html>

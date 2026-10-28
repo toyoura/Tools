@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MdReader — Markdown 読み上げ</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --text:#333; --muted:#7b8794;
+    --accent:#1a5fa8; --accent-soft:#e8f0fa; --line:#e3e6ea;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:"Yu Gothic UI","Yu Gothic","Meiryo","Hiragino Kaku Gothic ProN",system-ui,sans-serif;
+    font-size:15px; line-height:1.7;
+  }
+  #app{display:flex;flex-direction:column;height:100%}
+
+  header{
+    background:var(--card); border-bottom:1px solid var(--line);
+    padding:8px 14px; display:flex; flex-direction:column; gap:8px;
+    position:sticky; top:0; z-index:20;
+  }
+  .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  #fname{font-weight:700}
+  #fpath{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:52vw}
+  button,select{
+    font:inherit; font-size:13px; color:var(--text); background:var(--card);
+    border:1px solid var(--line); border-radius:6px; padding:5px 10px; cursor:pointer;
+  }
+  button:hover{background:#f0f3f7}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;min-width:110px}
+  button.primary:hover{background:#17518f}
+  #pos{color:var(--muted);font-size:12px;margin-left:auto;font-variant-numeric:tabular-nums}
+  #engine{color:#a8630a;font-size:12px;margin-left:auto}
+  #engine:not(:empty)+#pos{margin-left:12px}
+  .sep{width:1px;height:20px;background:var(--line)}
+
+  main{flex:1;display:grid;grid-template-columns:270px minmax(0,1fr);overflow:hidden}
+  #outline{
+    background:var(--card); border-right:1px solid var(--line);
+    overflow-y:auto; padding:12px 0 40px; font-size:13px;
+  }
+  #outline div{padding:3px 12px;cursor:pointer;color:#4a5560;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #outline div:hover{background:var(--accent-soft);color:var(--accent)}
+  #outline .lv1{font-weight:700;color:var(--text)}
+  #outline .lv2{padding-left:22px}
+  #outline .lv3{padding-left:34px;color:var(--muted)}
+  #outline .on{background:var(--accent-soft);color:var(--accent);font-weight:700}
+
+  #doc{overflow-y:auto;padding:22px 28px 55vh}
+  .chunk{
+    position:relative; padding:4px 40px 4px 12px; border-left:3px solid transparent;
+    border-radius:4px; cursor:pointer; scroll-margin:35vh;
+  }
+  .chunk:hover{background:#eef1f5}
+  .chunk.cur{background:var(--accent-soft);border-left-color:var(--accent)}
+  .chunk.done{color:#8c96a0}
+  .chunk.h1{font-size:1.5em;font-weight:700;margin-top:26px}
+  .chunk.h2{font-size:1.28em;font-weight:700;margin-top:22px}
+  .chunk.h3{font-size:1.12em;font-weight:700;margin-top:16px}
+  .chunk.h4,.chunk.h5,.chunk.h6{font-weight:700;margin-top:12px}
+  .chunk.li{padding-left:28px}
+  .chunk.li::before{content:"・";position:absolute;left:12px;color:var(--muted)}
+  .chunk.quote{border-left:3px solid #c9d2db;color:#5a6570;padding-left:16px}
+  .chunk.skip{color:#9aa4ae;font-family:Consolas,monospace;font-size:12px}
+  .go{
+    position:absolute;right:6px;top:3px;opacity:0;border:none;background:transparent;
+    color:var(--accent);font-size:12px;padding:2px 6px;
+  }
+  .chunk:hover .go{opacity:1}
+  .ln{color:#b6bec6;font-size:11px;margin-right:8px;font-variant-numeric:tabular-nums}
+
+  #toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+    background:#2b3138;color:#fff;padding:8px 16px;border-radius:6px;font-size:13px;
+    opacity:0;transition:opacity .25s;pointer-events:none;z-index:60;
+  }
+  #toast.on{opacity:.94}
+
+  #modal{position:fixed;inset:0;background:rgba(20,26,33,.35);display:none;z-index:50}
+  #modal.on{display:flex;align-items:center;justify-content:center}
+  .sheet{background:var(--card);width:min(760px,92vw);max-height:82vh;border-radius:10px;
+    display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.2)}
+  .sheet h3{margin:0;padding:14px 18px;border-bottom:1px solid var(--line);font-size:15px}
+  .sheet .body{padding:14px 18px;overflow-y:auto}
+  .sheet input{width:100%;font:inherit;font-size:13px;padding:8px 10px;
+    border:1px solid var(--line);border-radius:6px;font-family:Consolas,monospace}
+  .quick{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+  .list div{padding:5px 8px;border-radius:5px;cursor:pointer;font-size:13px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .list div:hover{background:var(--accent-soft);color:var(--accent)}
+  .lbl{font-size:12px;color:var(--muted);margin:14px 0 4px}
+  kbd{background:#eef1f5;border:1px solid var(--line);border-bottom-width:2px;
+    border-radius:4px;padding:1px 5px;font-size:11px;font-family:Consolas,monospace}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="row">
+      <button id="pick">📂 ファイル</button>
+      <span id="fname">ファイルを選んでください</span>
+      <span id="fpath"></span>
+    </div>
+    <div class="row">
+      <button id="prev" title="前の文 (←)">◀</button>
+      <button id="play" class="primary">▶ 再生</button>
+      <button id="next" title="次の文 (→)">▶</button>
+      <span class="sep"></span>
+      <select id="voice" title="話者。自動は文ごとに日本語と英語を切り替える">
+        <option value="auto">自動 (日本語 / 英語)</option>
+      </select>
+      <select id="speed">
+        <option value="0.8">0.8x</option>
+        <option value="1">1.0x</option>
+        <option value="1.2">1.2x</option>
+        <option value="1.4" selected>1.4x</option>
+        <option value="1.6">1.6x</option>
+        <option value="1.8">1.8x</option>
+        <option value="2">2.0x</option>
+      </select>
+      <span class="sep"></span>
+      <button id="edit" title="いま読んでいる行を Cursor で開く (E)">✎ Cursor で開く</button>
+      <span id="engine"></span>
+      <span id="pos"></span>
+    </div>
+  </header>
+  <main>
+    <nav id="outline"></nav>
+    <section id="doc"></section>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<div id="modal">
+  <div class="sheet">
+    <h3>Markdown ファイルを開く</h3>
+    <div class="body">
+      <input id="pathInput" placeholder="C:\path\to\note.md   (Enter で開く)" spellcheck="false">
+      <div class="quick" id="quick"></div>
+      <div class="lbl" id="curDir"></div>
+      <div class="list" id="entries"></div>
+      <div class="lbl">最近開いたファイル</div>
+      <div class="list" id="recent"></div>
+      <div class="lbl">
+        <kbd>Space</kbd> 再生/停止　<kbd>←</kbd><kbd>→</kbd> 前後の文
+        <kbd>E</kbd> Cursor で開く　<kbd>O</kbd> ファイルを開く
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const S = { path:null, mtime:0, chunks:[], cur:0, playing:false, dir:"C:\\", seq:null };
+const audio = new Audio();
+audio.preload = "auto";
+
+const enc = encodeURIComponent;
+const speakable = () => S.chunks.filter(c => c.say);
+
+/* 話者 ------------------------------------------------------------------ */
+/* 日本語の原稿でも、図のキャプションや Abstract は英語で書かれていることが多い。
+   自動では文ごとに判定し、日本語の文字を含まない文は英語の話者で読む。 */
+const JA_CHARS = /[぀-ゟ゠-ヿ㐀-鿿豈-﫿ｦ-ﾟ]/;
+const V = {
+  mode: localStorage.getItem("mdreader.voiceMode") || "auto",
+  ja: localStorage.getItem("mdreader.voiceJa") || "ja-JP-NanamiNeural",
+  en: localStorage.getItem("mdreader.voiceEn") || "en-US-AriaNeural",
+};
+
+function voiceFor(text){
+  if(V.mode !== "auto") return V.mode;
+  return JA_CHARS.test(text) ? V.ja : V.en;
+}
+
+const ttsUrl = c => "/api/tts?text=" + enc(c.say) + "&voice=" + enc(voiceFor(c.say));
+
+let voicesLoaded = false;
+
+async function loadVoices(){
+  const sel = $("#voice");
+  let list = [];
+  try{
+    const r = await fetch("/api/voices?locales=ja-JP,en-US,en-GB");
+    if(!r.ok) return;
+    list = await r.json();
+  }catch(e){ return; }
+  if(!list.length) return;
+  [...sel.querySelectorAll("optgroup")].forEach(g => g.remove());
+  const groups = {};
+  for(const v of list) (groups[v.locale] = groups[v.locale] || []).push(v);
+  for(const locale of Object.keys(groups)){
+    const g = document.createElement("optgroup");
+    g.label = locale;
+    for(const v of groups[locale]){
+      const o = document.createElement("option");
+      o.value = v.name;
+      o.textContent = v.label + " (" + (v.gender === "Female" ? "女性" : "男性") + ")"
+        + (v.multilingual ? " 多言語" : "");
+      g.appendChild(o);
+    }
+    sel.appendChild(g);
+  }
+  sel.value = list.some(v => v.name === V.mode) ? V.mode : "auto";
+  voicesLoaded = true;
+}
+
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 2400);
+}
+
+/* ---------- rendering ---------- */
+function render(){
+  const doc = $("#doc"), out = $("#outline");
+  doc.innerHTML = ""; out.innerHTML = "";
+  for(const c of S.chunks){
+    const d = document.createElement("div");
+    d.className = "chunk " + c.kind;
+    d.dataset.i = c.i;
+    const ln = document.createElement("span");
+    ln.className = "ln"; ln.textContent = c.line;
+    d.appendChild(ln);
+    d.appendChild(document.createTextNode(c.text));
+    const go = document.createElement("button");
+    go.className = "go"; go.textContent = "✎";
+    go.title = c.line + " 行目を Cursor で開く";
+    go.onclick = e => { e.stopPropagation(); openEditor(c.line); };
+    d.appendChild(go);
+    d.onclick = () => { S.cur = c.i; if(c.say) play(c.i); else paint(); };
+    doc.appendChild(d);
+
+    const lv = /^h[123]$/.test(c.kind) ? +c.kind[1] : 0;
+    if(lv){
+      const o = document.createElement("div");
+      o.className = "lv" + lv; o.textContent = c.text; o.dataset.i = c.i;
+      o.onclick = () => { S.cur = c.i; play(c.i); };
+      out.appendChild(o);
+    }
+  }
+  paint();
+}
+
+function lineLabel(c){
+  if(!c) return "";
+  return (c.end && c.end !== c.line) ? c.line + "–" + c.end + " 行目" : c.line + " 行目";
+}
+
+function paint(){
+  const list = speakable();
+  const done = list.filter(c => c.i < S.cur).length;
+  $("#pos").textContent = list.length
+    ? lineLabel(S.chunks[S.cur]) + "　" + (done + 1) + " / " + list.length + " 文"
+    : "";
+  document.querySelectorAll(".chunk").forEach(el => {
+    const i = +el.dataset.i;
+    el.classList.toggle("cur", i === S.cur);
+    el.classList.toggle("done", i < S.cur);
+  });
+  const el = document.querySelector('.chunk[data-i="' + S.cur + '"]');
+  if(el) el.scrollIntoView({block:"center", behavior:"smooth"});
+  let last = null;
+  document.querySelectorAll("#outline div").forEach(o => {
+    o.classList.remove("on");
+    if(+o.dataset.i <= S.cur) last = o;
+  });
+  if(last){
+    last.classList.add("on");
+    const r = last.getBoundingClientRect(), p = $("#outline").getBoundingClientRect();
+    if(r.top < p.top || r.bottom > p.bottom) last.scrollIntoView({block:"center"});
+  }
+}
+
+/* ---------- playback ---------- */
+function nextSpeakable(from){
+  for(let i = from; i < S.chunks.length; i++) if(S.chunks[i].say) return i;
+  return -1;
+}
+function prevSpeakable(from){
+  for(let i = from; i >= 0; i--) if(S.chunks[i].say) return i;
+  return -1;
+}
+
+function prefetch(i){
+  let k = i;
+  for(let n = 0; n < 2; n++){
+    k = nextSpeakable(k + 1);
+    if(k < 0) break;
+    fetch(ttsUrl(S.chunks[k]), {cache:"force-cache"}).catch(() => {});
+  }
+}
+
+function play(i){
+  const j = nextSpeakable(i);
+  if(j < 0){ stop(); toast("最後まで読み終わりました"); return; }
+  S.cur = j; S.playing = true;
+  $("#play").textContent = "❚❚ 一時停止";
+  audio.src = ttsUrl(S.chunks[j]);
+  audio.playbackRate = +$("#speed").value;
+  audio.play().catch(e => { stop(); toast("再生できません: " + e.message); });
+  paint();
+  prefetch(j);
+}
+
+function stop(){
+  S.playing = false; audio.pause();
+  $("#play").textContent = "▶ 再生";
+}
+
+audio.onended = () => {
+  if(!S.playing) return;
+  const j = nextSpeakable(S.cur + 1);
+  if(j < 0){ stop(); paint(); toast("最後まで読み終わりました"); return; }
+  play(j);
+};
+audio.onerror = () => {
+  if(S.playing){ stop(); toast("音声の取得に失敗しました (ネットワーク?)"); }
+};
+
+/* ---------- editor ---------- */
+async function openEditor(line){
+  if(!S.path) return;
+  try{
+    const r = await fetch("/api/open", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({path:S.path, line:line})
+    });
+    if(!r.ok) throw new Error((await r.json()).detail);
+    toast("Cursor: " + line + " 行目");
+  }catch(e){ toast("Cursor を開けません: " + e.message); }
+}
+
+/* ---------- loading / live reload ---------- */
+async function load(path, keepPos){
+  const before = S.chunks[S.cur];
+  const r = await fetch("/api/doc?path=" + enc(path));
+  if(!r.ok){ toast("開けません: " + (await r.json()).detail); return; }
+  const d = await r.json();
+  S.path = d.path; S.mtime = d.mtime; S.chunks = d.chunks; S.dir = d.dir;
+  $("#fname").textContent = d.name;
+  $("#fpath").textContent = d.path;
+  document.title = d.name + " — MdReader";
+  history.replaceState(null, "", "/?path=" + enc(d.path));
+  remember(d.path, d.name);
+  const at = keepPos && before ? relocate(before) : nextSpeakable(0);
+  S.cur = at < 0 ? 0 : at;
+  render();
+}
+
+function relocate(before){
+  const hit = S.chunks.find(c => c.say && c.text === before.text);
+  if(hit) return hit.i;
+  let best = null;
+  for(const c of S.chunks){ if(c.say && c.line <= before.line) best = c; }
+  return best ? best.i : nextSpeakable(0);
+}
+
+setInterval(async () => {
+  /* another drop onto MdReader.bat hands us a new file */
+  try{
+    const p = await (await fetch("/api/pending")).json();
+    if(S.seq === null){
+      S.seq = p.seq;
+    }else if(p.seq !== S.seq){
+      S.seq = p.seq;
+      if(p.path && p.path !== S.path){
+        $("#modal").classList.remove("on");
+        stop();
+        await load(p.path, false);
+        toast("開きました: " + p.path);
+      }
+    }
+  }catch(e){}
+
+  if(!voicesLoaded) loadVoices();
+
+  /* which engine is actually speaking */
+  try{
+    const e = await (await fetch("/api/engine")).json();
+    const el = $("#engine");
+    if(e.last === "sapi"){
+      el.textContent = "⚠ SAPI (オフライン音声)";
+      el.title = "edge-tts に接続できないため Windows 標準の音声で読んでいます"
+        + (e.cooldown_sec ? " (" + e.cooldown_sec + " 秒後に再試行)" : "")
+        + (e.last_error ? " — " + e.last_error : "");
+    }else{
+      el.textContent = "";
+      el.title = "";
+    }
+  }catch(e){}
+
+  if(!S.path) return;
+  try{
+    const r = await fetch("/api/stat?path=" + enc(S.path));
+    if(!r.ok) return;
+    const s = await r.json();
+    if(s.mtime !== S.mtime){
+      await load(S.path, true);
+      toast("編集を検出して読み込み直しました");
+    }
+  }catch(e){}
+}, 2000);
+
+/* ---------- file picker ---------- */
+function remember(path, name){
+  const rec = JSON.parse(localStorage.getItem("mdreader.recent") || "[]")
+    .filter(x => x.path !== path);
+  rec.unshift({path:path, name:name});
+  localStorage.setItem("mdreader.recent", JSON.stringify(rec.slice(0, 12)));
+}
+
+async function browse(dir){
+  const r = await fetch("/api/ls?dir=" + enc(dir));
+  if(!r.ok){ toast("開けません: " + dir); return; }
+  const d = await r.json();
+  S.dir = d.dir;
+  $("#curDir").textContent = d.dir;
+  const box = $("#entries"); box.innerHTML = "";
+  if(d.parent){
+    const up = document.createElement("div");
+    up.textContent = "📁 ..  (上へ)";
+    up.onclick = () => browse(d.parent);
+    box.appendChild(up);
+  }
+  for(const e of d.entries){
+    const el = document.createElement("div");
+    el.textContent = (e.dir ? "📁 " : "📄 ") + e.name;
+    el.onclick = () => e.dir ? browse(e.path) : choose(e.path);
+    box.appendChild(el);
+  }
+}
+
+function choose(path){
+  $("#modal").classList.remove("on");
+  stop();
+  load(path, false);
+}
+
+function openPicker(){
+  $("#modal").classList.add("on");
+  $("#pathInput").value = "";
+  $("#pathInput").focus();
+  const q = $("#quick"); q.innerHTML = "";
+  // Shortcuts in the file picker. Add the folders you open often.
+  ["C:\\"].forEach(root => {
+    const b = document.createElement("button");
+    b.textContent = root;
+    b.onclick = () => browse(root);
+    q.appendChild(b);
+  });
+  const rec = JSON.parse(localStorage.getItem("mdreader.recent") || "[]");
+  const rb = $("#recent"); rb.innerHTML = "";
+  rec.forEach(x => {
+    const el = document.createElement("div");
+    el.textContent = "📄 " + x.name + "  —  " + x.path;
+    el.onclick = () => choose(x.path);
+    rb.appendChild(el);
+  });
+  browse(S.dir);
+}
+
+/* ---------- wiring ---------- */
+$("#play").onclick = () => S.playing ? stop() : play(S.cur);
+$("#next").onclick = () => {
+  const j = nextSpeakable(S.cur + 1);
+  if(j < 0) return;
+  if(S.playing) play(j); else { S.cur = j; paint(); }
+};
+$("#prev").onclick = () => {
+  const j = prevSpeakable(S.cur - 1);
+  if(j < 0) return;
+  if(S.playing) play(j); else { S.cur = j; paint(); }
+};
+$("#edit").onclick = () => openEditor(S.chunks[S.cur] ? S.chunks[S.cur].line : 1);
+$("#pick").onclick = openPicker;
+$("#speed").onchange = () => { audio.playbackRate = +$("#speed").value; };
+$("#voice").onchange = e => {
+  V.mode = e.target.value;
+  localStorage.setItem("mdreader.voiceMode", V.mode);
+  // 明示的に選んだ話者は、その言語の既定として覚える。自動へ戻したときに効く。
+  if(V.mode.startsWith("ja-")){ V.ja = V.mode; localStorage.setItem("mdreader.voiceJa", V.ja); }
+  if(V.mode.startsWith("en-")){ V.en = V.mode; localStorage.setItem("mdreader.voiceEn", V.en); }
+  if(S.playing) play(S.cur);
+};
+$("#modal").onclick = e => { if(e.target.id === "modal") $("#modal").classList.remove("on"); };
+$("#pathInput").onkeydown = e => {
+  if(e.key === "Enter" && e.target.value.trim()) choose(e.target.value.trim());
+};
+
+document.addEventListener("keydown", e => {
+  const tag = e.target.tagName;
+  if(tag === "INPUT" || tag === "SELECT"){
+    if(e.key === "Escape") $("#modal").classList.remove("on");
+    return;
+  }
+  if(e.key === " "){ e.preventDefault(); $("#play").click(); }
+  else if(e.key === "ArrowRight" || e.key === "j"){ e.preventDefault(); $("#next").click(); }
+  else if(e.key === "ArrowLeft" || e.key === "k"){ e.preventDefault(); $("#prev").click(); }
+  else if(e.key === "e" || e.key === "E"){ $("#edit").click(); }
+  else if(e.key === "o" || e.key === "O"){ openPicker(); }
+  else if(e.key === "Escape"){ $("#modal").classList.remove("on"); }
+});
+
+loadVoices();
+const q0 = new URLSearchParams(location.search).get("path");
+if(q0) load(q0, false); else openPicker();
+</script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ClipTranslate</title>
+  <meta name="description" content="クリップボードの文をホットキー1つで日英相互に訳して書き戻す、Windows の常駐ツール">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Noto+Serif+JP:wght@500;600&display=swap">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="alternate" hreflang="ja" href="https://toyoura.github.io/Tools/tools/cliptranslate/">
+  <link rel="alternate" hreflang="en" href="https://toyoura.github.io/Tools/en/tools/cliptranslate/">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <nav class="topbar"><a class="breadcrumb" href="../../">Lab Tools</a><a class="lang" href="../../en/tools/cliptranslate/" hreflang="en" lang="en">English</a></nav>
+      <div class="tool-title">
+        <img src="../../assets/icons/cliptranslate.svg" alt="">
+        <h1>ClipTranslate</h1>
+      </div>
+      <p class="lead">
+        コピーした文を <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd> で訳し、訳文をクリップボードに書き戻す Windows の常駐ツールです。
+        日本語なら英語へ、英語なら日本語へ訳します。あとは <kbd>Ctrl</kbd>+<kbd>V</kbd> で貼るだけです。
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap article">
+    <p>
+      翻訳には OpenAI か Anthropic (Claude) の API を使います。キーは自分で用意します。
+      画面は持たず、タスクトレイのアイコンと Windows の通知だけで動きます。
+    </p>
+    <p><a class="download" href="https://github.com/toyoura/Tools/tree/main/tools/cliptranslate/src">ソースを見る (GitHub)</a></p>
+
+    <h2>動く環境</h2>
+    <ul>
+      <li>Windows 10 / 11</li>
+      <li>Python 3.9 以上 (<code>pythonw</code> で起動します)</li>
+      <li>OpenAI か Anthropic の API キー</li>
+    </ul>
+
+    <h2>導入</h2>
+    <ol>
+      <li>
+        <a href="src/cliptranslate.py">cliptranslate.py</a>、<a href="src/start.cmd">start.cmd</a>、<a href="src/requirements.txt">requirements.txt</a> の3つを同じフォルダに置きます。
+      </li>
+      <li>
+        トレイアイコン用のライブラリ (pystray と Pillow) を入れます。
+        <pre><code>python -m pip install -r requirements.txt</code></pre>
+      </li>
+      <li>
+        API キーをユーザー環境変数に入れます。OpenAI なら <code>OPENAI_API_KEY</code>、Claude なら <code>ANTHROPIC_API_KEY</code> です。
+        <pre><code>setx OPENAI_API_KEY "sk-..."</code></pre>
+        環境変数を入れる前から開いていたプロセスからでも、レジストリを直接読むので起動できます。
+      </li>
+      <li><code>start.cmd</code> を実行します。タスクトレイに紺地の矢印のアイコンが出れば準備完了です。</li>
+    </ol>
+    <p>
+      Windows の起動時に立ち上げたいときは、<kbd>Win</kbd>+<kbd>R</kbd> で <code>shell:startup</code> を開き、<code>start.cmd</code> へのショートカットを置きます。
+    </p>
+
+    <h2>使い方</h2>
+    <p>
+      訳したい文をコピーしてホットキーを押します。翻訳中はアイコンがえんじ色に変わり、終わると訳文の冒頭が通知に出ます。
+      短い文なら2秒前後です。トレイアイコンを右クリックすると、次のメニューが出ます。
+    </p>
+    <table>
+      <caption>表1 トレイアイコンのメニュー</caption>
+      <thead><tr><th>項目</th><th>動作</th></tr></thead>
+      <tbody>
+        <tr><td>クリップボードを翻訳</td><td>ホットキーと同じ。アイコンの左クリックでも動く</td></tr>
+        <tr><td>元の文に戻す</td><td>直前に訳した原文をクリップボードに戻す</td></tr>
+        <tr><td>終了</td><td>常駐をやめる</td></tr>
+      </tbody>
+    </table>
+    <p>二重に起動しても、2つ目は何もせずに終わります。</p>
+
+    <h2>設定</h2>
+    <p>
+      <code>cliptranslate.py</code> と同じフォルダに <code>config.json</code> を置くと、既定値を上書きできます。書いた項目だけが変わります。
+    </p>
+<pre><code>{
+  "provider": "openai",
+  "openai_model": "gpt-5.6-terra",
+  "claude_model": "claude-opus-5",
+  "effort": "low",
+  "hotkey": "ctrl+alt+t",
+  "extra": "",
+  "timeout": 120
+}</code></pre>
+    <table>
+      <caption>表2 設定項目</caption>
+      <thead><tr><th>項目</th><th>意味</th></tr></thead>
+      <tbody>
+        <tr><td><code>provider</code></td><td><code>openai</code> か <code>claude</code></td></tr>
+        <tr><td><code>effort</code></td><td><code>low</code> / <code>medium</code> / <code>high</code>。ホットキーを押して待たされないよう、既定は <code>low</code></td></tr>
+        <tr><td><code>hotkey</code></td><td>修飾キー (<code>ctrl</code> <code>alt</code> <code>shift</code> <code>win</code>) と、英数字1文字か <code>f1</code>〜<code>f24</code> を <code>+</code> でつなぐ</td></tr>
+        <tr><td><code>extra</code></td><td>システムプロンプトに足す指示。訳語をそろえたいときに使う</td></tr>
+        <tr><td><code>timeout</code></td><td>API の応答を待つ秒数</td></tr>
+      </tbody>
+    </table>
+    <p>設定を変えたら、トレイから終了して起動し直します。</p>
+
+    <h2>訳し方の工夫</h2>
+    <h3>訳す方向はツールが決める</h3>
+    <p>
+      訳す方向はモデルに任せず、送る前にツールが決めます。
+      仮名と漢字の数を4倍して、英字の数以上なら日本語とみなします。日本語は1文字が英語の1語ほどの情報を持つので、英語の専門用語が多い日本語の文も日本語として扱えます。
+    </p>
+    <h3>文体は原文に合わせる</h3>
+    <p>
+      論文や報告書の文は“である調”、手紙やメールの文は“です・ます調”に訳すよう指示しています。
+    </p>
+    <h3>PDF の改行はモデルに任せる</h3>
+    <p>
+      PDF からコピーした文には、行の途中の改行や行末のハイフンが混じります。送る前にコードで整形はせず、つないでから訳すようプロンプトで指示しています。
+    </p>
+    <h3>文中の“指示”には従わない</h3>
+    <p>
+      コピーした文に“以下を要約せよ”のような文が入っていても、訳す対象として扱うようプロンプトに書いてあります。
+    </p>
+
+    <h2>API に送るもの</h2>
+    <p class="note">
+      クリップボードの文がそのまま API に送られます。社外秘の文書や個人情報を訳すときは、所属先の規程と、各社の API のデータ利用方針を確かめてください。
+    </p>
+    <p>
+      ログ (<code>cliptranslate.log</code>) には起動、訳した方向と文字数、エラーだけを書きます。原文と訳文は残しません。
+    </p>
+
+    <h2>ファイル</h2>
+    <table>
+      <caption>表3 ファイル構成</caption>
+      <thead><tr><th>ファイル</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td><a href="src/cliptranslate.py"><code>cliptranslate.py</code></a></td><td>本体 (約480行)。クリップボードとホットキーは Win32 API を ctypes で直接呼ぶ。HTTP は標準ライブラリの urllib</td></tr>
+        <tr><td><a href="src/start.cmd"><code>start.cmd</code></a></td><td>コンソールを出さずに <code>pythonw</code> で起動する</td></tr>
+        <tr><td><a href="src/requirements.txt"><code>requirements.txt</code></a></td><td>pystray と Pillow</td></tr>
+      </tbody>
+    </table>
+    <p>ライセンスは <a href="https://unlicense.org">The Unlicense</a> です。自由に使い、直し、配ってかまいません。無保証で、使って生じた損害は補償しません。</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="../../">一覧に戻る</a></p>
+    </div>
+  </footer>
+</body>
+</html>

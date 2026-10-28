@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code セッションビューア</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --text:#333; --text-dim:#777;
+    --accent:#1a5fa8; --accent-dim:#e8f0fa; --border:#e0e2e6;
+    --user-bg:#eaf2fb; --assistant-bg:#ffffff; --think-bg:#f7f5fb; --think-border:#d9d0ea;
+    --tool-bg:#f4f8f4; --tool-border:#cfe3cf; --result-bg:#fafafa; --result-border:#e2e2e2;
+    --side-border:#c99a3a; --side-bg:#fffaf0;
+    --code-bg:#2d2d2d; --code-text:#eee;
+    --danger:#b3452c;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;font-size:14px;}
+  #app{max-width:980px;margin:0 auto;padding:16px;}
+
+  /* header / toolbar */
+  #dropzone{border:2px dashed #b9c3cf;border-radius:10px;padding:40px 20px;text-align:center;
+    color:var(--text-dim);background:var(--card);cursor:pointer;transition:background .15s;}
+  #dropzone.drag{background:var(--accent-dim);border-color:var(--accent);}
+  #dropzone input{display:none;}
+  #dropzone .hint{font-size:12px;margin-top:6px;color:#999;}
+  .or-sep{margin:16px 0 12px;color:#999;font-size:12px;display:flex;align-items:center;gap:10px;}
+  .or-sep::before,.or-sep::after{content:"";flex:1;border-top:1px solid var(--border);}
+  .folder-btn-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .folder-btn{display:inline-block;padding:8px 16px;border-radius:8px;border:1px solid var(--accent);
+    color:var(--accent);background:#fff;cursor:pointer;font-size:13px;}
+  .folder-btn:hover{background:var(--accent-dim);}
+  .folder-btn.primary{background:var(--accent);color:#fff;}
+  .folder-btn.primary:hover{background:#154e8c;}
+  .folder-btn input{display:none;}
+
+  #sessionListWrap{display:none;}
+  #slHeader{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;
+    margin-bottom:10px;}
+  #slHeader .path{font-size:12px;color:var(--text-dim);margin-bottom:8px;word-break:break-all;}
+  #slControls{display:flex;gap:8px;align-items:center;}
+  #slSearch{flex:1;padding:6px 10px;border-radius:6px;border:1px solid var(--border);font-size:12.5px;}
+  #slBack{font-size:12px;padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:#fafbfc;cursor:pointer;}
+  #slBack:hover{background:var(--accent-dim);border-color:var(--accent);}
+  #slCount{font-size:12px;color:var(--text-dim);white-space:nowrap;}
+  #sessionList{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  .sl-row{padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;
+    flex-direction:column;gap:2px;}
+  .sl-row:last-child{border-bottom:none;}
+  .sl-row:hover{background:var(--accent-dim);}
+  .sl-name{font-size:13px;font-weight:600;color:var(--text);}
+  .sl-id{font-size:11.5px;color:var(--text-dim);font-family:Consolas,monospace;}
+  .sl-meta{font-size:11.5px;color:var(--text-dim);}
+  .sl-preview{font-size:12px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .sl-loading{padding:14px;text-align:center;color:var(--text-dim);font-size:12px;}
+
+  #toolbar{display:none;background:var(--card);border:1px solid var(--border);border-radius:10px;
+    padding:12px 14px;margin-bottom:14px;position:sticky;top:8px;z-index:20;box-shadow:0 2px 6px rgba(0,0,0,.05);}
+  #meta{font-size:12px;color:var(--text-dim);margin-bottom:8px;line-height:1.7;}
+  #meta b{color:var(--text);}
+  #controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  #controls button, #controls label{
+    font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);
+    background:#fafbfc;cursor:pointer;color:var(--text);user-select:none;}
+  #controls button:hover, #controls label:hover{background:var(--accent-dim);border-color:var(--accent);}
+  #controls button.active, #controls label.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  #search{flex:1;min-width:160px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);font-size:12px;}
+  #searchInfo{font-size:12px;color:var(--text-dim);}
+
+  #transcript{display:none;}
+  .turn{margin-bottom:14px;}
+  .row{display:flex;gap:10px;}
+  .avatar{flex:0 0 auto;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-size:14px;color:#fff;}
+  .avatar.user{background:#5b7ea3;}
+  .avatar.assistant{background:var(--accent);}
+  .bubble{flex:1;min-width:0;border-radius:10px;padding:10px 14px;border:1px solid var(--border);}
+  .bubble.user{background:var(--user-bg);}
+  .bubble.assistant{background:var(--assistant-bg);}
+  .sidechain .bubble{border-left:3px solid var(--side-border);background:var(--side-bg);}
+  .who{font-weight:600;font-size:12.5px;margin-bottom:4px;display:flex;gap:8px;align-items:baseline;}
+  .ts{font-weight:400;color:var(--text-dim);font-size:11px;}
+  .tag{font-size:10px;padding:1px 6px;border-radius:10px;background:var(--side-border);color:#fff;}
+  .content p{margin:.4em 0;}
+  .content{line-height:1.65;white-space:normal;word-wrap:break-word;}
+  .content h1,.content h2,.content h3{margin:.6em 0 .3em;}
+  .content ul,.content ol{margin:.3em 0;padding-left:1.4em;}
+  .content code{background:#eef0f2;padding:1px 5px;border-radius:4px;font-family:Consolas,monospace;font-size:12.5px;}
+  .content pre{background:var(--code-bg);color:var(--code-text);padding:10px 12px;border-radius:8px;
+    overflow-x:auto;font-size:12.5px;}
+  .content pre code{background:none;padding:0;color:inherit;}
+  .content table{border-collapse:collapse;margin:.5em 0;font-size:12.5px;}
+  .content table th,.content table td{border:1px solid var(--border);padding:4px 8px;}
+  .content blockquote{border-left:3px solid var(--border);margin:.4em 0;padding:2px 10px;color:var(--text-dim);}
+  .content a{color:var(--accent);}
+
+  details.block{margin:8px 0;border-radius:8px;border:1px solid var(--border);overflow:hidden;}
+  details.think{border-color:var(--think-border);}
+  details.think>summary{background:var(--think-bg);}
+  details.tool{border-color:var(--tool-border);}
+  details.tool>summary{background:var(--tool-bg);}
+  details.result{border-color:var(--result-border);}
+  details.result>summary{background:var(--result-bg);}
+  details>summary{list-style:none;cursor:pointer;padding:6px 10px;font-size:12.5px;font-weight:600;
+    display:flex;gap:6px;align-items:center;color:#555;}
+  details>summary::-webkit-details-marker{display:none;}
+  details>summary::before{content:"▸";display:inline-block;transition:transform .1s;font-size:10px;color:#999;}
+  details[open]>summary::before{transform:rotate(90deg);}
+  details .inner{padding:8px 12px;font-size:12.5px;}
+  details .inner pre{margin:0;background:var(--code-bg);color:var(--code-text);padding:8px 10px;
+    border-radius:6px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;}
+  .tool-name{color:var(--accent);}
+  .kv{font-size:12px;color:var(--text-dim);}
+  .badge-err{color:#fff;background:var(--danger);border-radius:8px;padding:0 6px;font-size:10px;}
+  .meta-note{font-size:11.5px;color:#aaa;text-align:center;margin:6px 0;}
+  .divider{text-align:center;color:#999;font-size:11.5px;margin:16px 0;position:relative;}
+  .divider::before,.divider::after{content:"";position:absolute;top:50%;width:40%;border-top:1px dashed var(--border);}
+  .divider::before{left:0;} .divider::after{right:0;}
+  mark{background:#ffe89a;padding:0 1px;}
+  img.tool-img{max-width:100%;border-radius:6px;margin-top:4px;border:1px solid var(--border);}
+  #loading{display:none;text-align:center;padding:30px;color:var(--text-dim);}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="dropzone">
+    <div style="font-size:15px;">Claude Code のセッション記録 (.jsonl) をドラッグ&amp;ドロップ、またはクリックして選択</div>
+    <div class="hint">例: %USERPROFILE%\.claude\projects\&lt;project&gt;\&lt;session-id&gt;.jsonl</div>
+    <input type="file" id="fileInput" accept=".jsonl,.json,.txt">
+    <div class="or-sep">またはフォルダを選んでセッション一覧から選ぶ</div>
+    <div class="folder-btn-row">
+      <label class="folder-btn primary" onclick="event.stopPropagation();">
+        📁 ログのフォルダを開く
+        <input type="file" id="folderInputC" webkitdirectory multiple>
+      </label>
+      <label class="folder-btn" onclick="event.stopPropagation();">
+        📁 別の場所のフォルダを開く
+        <input type="file" id="folderInputP" webkitdirectory multiple>
+      </label>
+    </div>
+    <div class="hint">例) %USERPROFILE%\.claude\projects\&lt;project&gt;</div>
+  </div>
+
+  <div id="sessionListWrap">
+    <div id="slHeader">
+      <div class="path" id="slPath"></div>
+      <div id="slControls">
+        <button id="slBack">戻る</button>
+        <input type="text" id="slSearch" placeholder="ファイル名・冒頭の発言で絞り込み...">
+        <span id="slCount"></span>
+      </div>
+    </div>
+    <div id="sessionList"></div>
+  </div>
+
+  <div id="loading">読み込み中...</div>
+
+  <div id="toolbar">
+    <div id="meta"></div>
+    <div id="controls">
+      <label class="active" id="toggleThink">思考を表示</label>
+      <label class="active" id="toggleTool">ツール呼び出しを表示</label>
+      <label id="toggleSide">サブエージェントを表示</label>
+      <label id="toggleSys">システムイベントを表示</label>
+      <button id="expandAll">全展開</button>
+      <button id="collapseAll">全折りたたみ</button>
+      <input type="text" id="search" placeholder="本文を検索...">
+      <span id="searchInfo"></span>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button id="backToList" style="display:none;">📋 一覧に戻る</button>
+        <button id="reopen">最初からやり直す</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="transcript"></div>
+</div>
+
+<script>
+(function(){
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const loading = document.getElementById('loading');
+  const toolbar = document.getElementById('toolbar');
+  const transcriptEl = document.getElementById('transcript');
+  const metaEl = document.getElementById('meta');
+
+  let showThink = true, showTool = true, showSide = false, showSys = false;
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  ['dragover','dragenter'].forEach(ev => dropzone.addEventListener(ev, e => {
+    e.preventDefault(); dropzone.classList.add('drag');
+  }));
+  ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => {
+    e.preventDefault(); dropzone.classList.remove('drag');
+  }));
+  dropzone.addEventListener('drop', e => {
+    const f = e.dataTransfer.files[0];
+    if (f){ cameFromList = false; loadFile(f); }
+  });
+  fileInput.addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (f){ cameFromList = false; loadFile(f); }
+  });
+
+  // ---- folder -> session list ----
+  const folderInputC = document.getElementById('folderInputC');
+  const folderInputP = document.getElementById('folderInputP');
+  const sessionListWrap = document.getElementById('sessionListWrap');
+  const sessionListEl = document.getElementById('sessionList');
+  const slPath = document.getElementById('slPath');
+  const slSearch = document.getElementById('slSearch');
+  const slCount = document.getElementById('slCount');
+  const backToListBtn = document.getElementById('backToList');
+  let sessionEntries = [];
+  let cameFromList = false;
+
+  function backToStart(){
+    toolbar.style.display = 'none';
+    transcriptEl.style.display = 'none';
+    transcriptEl.innerHTML = '';
+    sessionListWrap.style.display = 'none';
+    dropzone.style.display = 'block';
+    fileInput.value = '';
+    folderInputC.value = '';
+    folderInputP.value = '';
+    sessionEntries = [];
+    cameFromList = false;
+  }
+  document.getElementById('reopen').addEventListener('click', backToStart);
+  document.getElementById('slBack').addEventListener('click', backToStart);
+  backToListBtn.addEventListener('click', () => {
+    toolbar.style.display = 'none';
+    transcriptEl.style.display = 'none';
+    dropzone.style.display = 'none';
+    sessionListWrap.style.display = 'block';
+  });
+
+  function handleFolderFiles(fileList, driveLabel){
+    const files = Array.from(fileList).filter(f => /\.jsonl$/i.test(f.name));
+    if (!files.length){
+      alert('このフォルダには .jsonl ファイルが見つかりませんでした。');
+      return;
+    }
+    files.sort((a,b) => b.lastModified - a.lastModified);
+    const rel = files[0].webkitRelativePath || files[0].name;
+    const folderName = rel.split('/')[0];
+    slPath.textContent = `${driveLabel}: ${folderName} (${files.length} 件のセッション)`;
+    dropzone.style.display = 'none';
+    sessionListWrap.style.display = 'block';
+    sessionEntries = files.map(f => ({file:f, title:'', preview:'', cwd:'', loaded:false}));
+    slSearch.value = '';
+    renderSessionList(sessionEntries);
+    peekAll(sessionEntries);
+  }
+  folderInputC.addEventListener('change', e => handleFolderFiles(e.target.files, 'フォルダ'));
+  folderInputP.addEventListener('change', e => handleFolderFiles(e.target.files, '別の場所'));
+
+  function fmtSize(n){
+    if (n > 1024*1024) return (n/1024/1024).toFixed(1)+' MB';
+    if (n > 1024) return (n/1024).toFixed(0)+' KB';
+    return n+' B';
+  }
+
+  function renderSessionList(entries){
+    slCount.textContent = `${entries.length} 件`;
+    sessionListEl.innerHTML = entries.map((e,i) => {
+      const d = new Date(e.file.lastModified);
+      const dstr = isNaN(d) ? '' : d.toLocaleString('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+      return `<div class="sl-row" data-idx="${i}">
+        <div class="sl-name">${escapeHtml(e.title || e.file.name.replace(/\.jsonl$/,''))}</div>
+        ${e.title ? `<div class="sl-id">${escapeHtml(e.file.name.replace(/\.jsonl$/,''))}</div>` : ''}
+        <div class="sl-meta">${dstr} ・ ${fmtSize(e.file.size)}${e.cwd?' ・ '+escapeHtml(e.cwd):''}</div>
+        <div class="sl-preview">${e.preview ? escapeHtml(e.preview) : (e.loaded ? '(プレビューなし)' : '読み込み中...')}</div>
+      </div>`;
+    }).join('') || '<div class="sl-loading">該当するセッションがありません</div>';
+    sessionListEl.querySelectorAll('.sl-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const idx = Number(row.getAttribute('data-idx'));
+        sessionListWrap.style.display = 'none';
+        cameFromList = true;
+        loadFile(entries[idx].file);
+      });
+    });
+  }
+
+  // Session titles (custom-title / ai-title) are appended near the end of the file,
+  // so read only the tail. The last custom title wins; ai-title is the fallback.
+  function peekTitle(entry){
+    return new Promise(resolve => {
+      const size = entry.file.size;
+      const slice = entry.file.slice(Math.max(0, size - 262144), size);
+      const fr = new FileReader();
+      fr.onload = () => {
+        let custom = '', ai = '';
+        for (const line of fr.result.split('\n')){
+          if (!line.includes('-title"')) continue;
+          let obj;
+          try { obj = JSON.parse(line); } catch(e){ continue; }
+          if (obj.type === 'custom-title' && obj.customTitle) custom = obj.customTitle;
+          else if (obj.type === 'ai-title' && obj.aiTitle) ai = obj.aiTitle;
+        }
+        entry.title = custom || ai;
+        resolve();
+      };
+      fr.onerror = () => resolve();
+      fr.readAsText(slice, 'utf-8');
+    });
+  }
+
+  async function peekOne(entry){
+    await peekTitle(entry);
+    return new Promise(resolve => {
+      const slice = entry.file.slice(0, 8192);
+      const fr = new FileReader();
+      fr.onload = () => {
+        const text = fr.result;
+        const lines = text.split('\n');
+        for (const line of lines){
+          if (!line.trim()) continue;
+          let obj;
+          try { obj = JSON.parse(line); } catch(e){ continue; }
+          if (!entry.cwd && obj.cwd) entry.cwd = obj.cwd;
+          if (!entry.preview && obj.type === 'user' && obj.message){
+            const c = obj.message.content;
+            if (typeof c === 'string') entry.preview = c.replace(/\s+/g,' ').slice(0,140);
+            else if (Array.isArray(c)){
+              const t = c.find(b => b.type === 'text');
+              if (t) entry.preview = t.text.replace(/\s+/g,' ').slice(0,140);
+            }
+          }
+          if (entry.preview && entry.cwd) break;
+        }
+        entry.loaded = true;
+        resolve();
+      };
+      fr.onerror = () => { entry.loaded = true; resolve(); };
+      fr.readAsText(slice, 'utf-8');
+    });
+  }
+
+  async function peekAll(entries){
+    const concurrency = 6;
+    let i = 0;
+    async function worker(){
+      while (i < entries.length){
+        const idx = i++;
+        await peekOne(entries[idx]);
+      }
+    }
+    await Promise.all(Array.from({length:Math.min(concurrency, entries.length)}, worker));
+    if (entries === sessionEntries) renderSessionList(filteredEntries());
+  }
+
+  function filteredEntries(){
+    const q = slSearch.value.trim().toLowerCase();
+    if (!q) return sessionEntries;
+    return sessionEntries.filter(e =>
+      e.file.name.toLowerCase().includes(q) ||
+      (e.title && e.title.toLowerCase().includes(q)) ||
+      (e.preview && e.preview.toLowerCase().includes(q)) ||
+      (e.cwd && e.cwd.toLowerCase().includes(q))
+    );
+  }
+  slSearch.addEventListener('input', () => renderSessionList(filteredEntries()));
+
+  function loadFile(file){
+    dropzone.style.display = 'none';
+    loading.style.display = 'block';
+    const reader = new FileReader();
+    reader.onload = () => {
+      loading.style.display = 'none';
+      try {
+        render(reader.result, file.name);
+      } catch (err) {
+        loading.style.display = 'block';
+        loading.textContent = '読み込みに失敗しました: ' + err.message;
+      }
+    };
+    reader.onerror = () => {
+      loading.textContent = 'ファイルの読み込みエラー';
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  function escapeHtml(s){
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // ---- minimal markdown renderer (escapes first, then applies safe tags) ----
+  function renderMarkdown(src){
+    if (src == null) return '';
+    src = String(src);
+    const lines = src.split('\n');
+    let html = '';
+    let inCode = false, codeBuf = [], codeLang = '';
+    let listBuf = [], listType = null;
+    let tableBuf = [];
+
+    function flushList(){
+      if (listBuf.length){
+        const tag = listType === 'ol' ? 'ol' : 'ul';
+        html += `<${tag}>` + listBuf.map(li => `<li>${inline(li)}</li>`).join('') + `</${tag}>`;
+        listBuf = []; listType = null;
+      }
+    }
+    function flushTable(){
+      if (tableBuf.length){
+        const rows = tableBuf.filter(r => !/^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(r));
+        html += '<table>' + rows.map((r,i) => {
+          const cells = r.replace(/^\||\|$/g,'').split('|').map(c=>c.trim());
+          const tag = i===0 ? 'th' : 'td';
+          return '<tr>' + cells.map(c=>`<${tag}>${inline(c)}</${tag}>`).join('') + '</tr>';
+        }).join('') + '</table>';
+        tableBuf = [];
+      }
+    }
+    function inline(s){
+      let t = escapeHtml(s);
+      t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
+      t = t.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+      t = t.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<i>$1</i>');
+      t = t.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+      return t;
+    }
+
+    for (let raw of lines){
+      const fence = raw.match(/^\s*```(.*)$/);
+      if (fence){
+        if (!inCode){ inCode = true; codeLang = fence[1].trim(); codeBuf = []; }
+        else {
+          html += `<pre><code>${escapeHtml(codeBuf.join('\n'))}</code></pre>`;
+          inCode = false;
+        }
+        continue;
+      }
+      if (inCode){ codeBuf.push(raw); continue; }
+
+      if (/^\s*\|.*\|\s*$/.test(raw)){ tableBuf.push(raw); continue; }
+      else flushTable();
+
+      const h = raw.match(/^(#{1,4})\s+(.*)$/);
+      if (h){ flushList(); html += `<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`; continue; }
+
+      const ol = raw.match(/^\s*\d+\.\s+(.*)$/);
+      const ul = raw.match(/^\s*[-*+]\s+(.*)$/);
+      if (ol){ if (listType && listType!=='ol') flushList(); listType='ol'; listBuf.push(ol[1]); continue; }
+      if (ul){ if (listType && listType!=='ul') flushList(); listType='ul'; listBuf.push(ul[1]); continue; }
+      flushList();
+
+      const bq = raw.match(/^\s*>\s?(.*)$/);
+      if (bq){ html += `<blockquote>${inline(bq[1])}</blockquote>`; continue; }
+
+      if (/^\s*$/.test(raw)){ continue; }
+      if (/^\s*(---|\*\*\*)\s*$/.test(raw)){ html += '<hr>'; continue; }
+
+      html += `<p>${inline(raw)}</p>`;
+    }
+    flushList(); flushTable();
+    if (inCode) html += `<pre><code>${escapeHtml(codeBuf.join('\n'))}</code></pre>`;
+    return html;
+  }
+
+  function fmtTime(ts){
+    if (!ts) return '';
+    const d = new Date(ts);
+    if (isNaN(d)) return ts;
+    return d.toLocaleString('ja-JP', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
+
+  function shortJson(obj, max){
+    let s;
+    try { s = JSON.stringify(obj, null, 2); } catch(e){ s = String(obj); }
+    if (max && s.length > max) return s.slice(0, max) + '\n... (省略)';
+    return s;
+  }
+
+  function contentToText(content){
+    if (typeof content === 'string') return content;
+    if (Array.isArray(content)){
+      return content.map(b => {
+        if (typeof b === 'string') return b;
+        if (b.type === 'text') return b.text;
+        if (b.type === 'image') return '[image]';
+        return shortJson(b, 2000);
+      }).join('\n');
+    }
+    return shortJson(content, 4000);
+  }
+
+  // ---- tool_use rendering helpers per known tool names ----
+  function renderToolInput(name, input){
+    if (!input) return '';
+    if (name === 'Bash' || name === 'PowerShell'){
+      return `<pre>${escapeHtml(input.command || '')}</pre>` +
+        (input.description ? `<div class="kv">${escapeHtml(input.description)}</div>` : '');
+    }
+    if (name === 'Read'){
+      return `<div class="kv">${escapeHtml(input.file_path||'')}${input.offset?` (offset ${input.offset}${input.limit?', limit '+input.limit:''})`:''}</div>`;
+    }
+    if (name === 'Write'){
+      return `<div class="kv">${escapeHtml(input.file_path||'')}</div><pre>${escapeHtml((input.content||'').slice(0,4000))}</pre>`;
+    }
+    if (name === 'Edit'){
+      return `<div class="kv">${escapeHtml(input.file_path||'')}</div>` +
+        `<pre>- ${escapeHtml((input.old_string||'').slice(0,2000))}\n+ ${escapeHtml((input.new_string||'').slice(0,2000))}</pre>`;
+    }
+    if (name === 'Grep' || name === 'Glob'){
+      return `<div class="kv">${escapeHtml(shortJson(input, 1000))}</div>`;
+    }
+    return `<pre>${escapeHtml(shortJson(input, 4000))}</pre>`;
+  }
+
+  function buildBlockHtml(block, toolNameMap){
+    if (block.type === 'thinking'){
+      return `<details class="block think" data-kind="think">
+        <summary>💭 思考</summary>
+        <div class="inner">${renderMarkdown(block.thinking || '')}</div>
+      </details>`;
+    }
+    if (block.type === 'text'){
+      return `<div class="content">${renderMarkdown(block.text || '')}</div>`;
+    }
+    if (block.type === 'tool_use'){
+      toolNameMap[block.id] = block.name;
+      return `<details class="block tool" data-kind="tool">
+        <summary>🔧 <span class="tool-name">${escapeHtml(block.name)}</span></summary>
+        <div class="inner">${renderToolInput(block.name, block.input)}</div>
+      </details>`;
+    }
+    if (block.type === 'tool_result'){
+      const name = toolNameMap[block.tool_use_id] || '?';
+      const isErr = block.is_error;
+      const text = contentToText(block.content);
+      let imgHtml = '';
+      if (Array.isArray(block.content)){
+        block.content.forEach(b => {
+          if (b.type === 'image' && b.source && b.source.data){
+            imgHtml += `<img class="tool-img" src="data:${escapeHtml(b.source.media_type||'image/png')};base64,${b.source.data}">`;
+          }
+        });
+      }
+      const preview = text.length > 1500 ? text.slice(0,1500) + '\n... (省略、展開して全文表示)' : text;
+      return `<details class="block result" data-kind="tool">
+        <summary>📋 実行結果: <span class="tool-name">${escapeHtml(name)}</span> ${isErr?'<span class="badge-err">error</span>':''}</summary>
+        <div class="inner"><pre>${escapeHtml(preview)}</pre>${imgHtml}</div>
+      </details>`;
+    }
+    return `<div class="content"><pre>${escapeHtml(shortJson(block, 2000))}</pre></div>`;
+  }
+
+  function render(text, filename){
+    const lines = text.split('\n').filter(l => l.trim().length);
+    const records = [];
+    let parseErrors = 0;
+    for (const line of lines){
+      try { records.push(JSON.parse(line)); }
+      catch(e){ parseErrors++; }
+    }
+
+    const toolNameMap = {};
+    let userTurns = 0, assistantTurns = 0, toolCalls = 0, sideCount = 0;
+    let firstTs = null, lastTs = null;
+    const models = new Set();
+    let inTokens = 0, outTokens = 0;
+    let cwd = '', sessionId = '', version = '';
+
+    const html = [];
+
+    for (const rec of records){
+      const ts = rec.timestamp;
+      if (ts){ if (!firstTs) firstTs = ts; lastTs = ts; }
+      cwd = rec.cwd || cwd;
+      sessionId = rec.sessionId || sessionId;
+      version = rec.version || version;
+      const isSide = !!rec.isSidechain;
+
+      if (rec.type === 'user' && rec.message){
+        const content = rec.message.content;
+        const isToolResultOnly = Array.isArray(content) && content.every(b => b.type === 'tool_result');
+        if (isToolResultOnly){
+          toolCalls++;
+          const blocksHtml = content.map(b => buildBlockHtml(b, toolNameMap)).join('');
+          html.push(`<div class="turn${isSide?' sidechain':''}" data-side="${isSide}" data-sys="0">
+            <div class="row"><div style="flex:0 0 28px"></div><div class="bubble" style="background:transparent;border:none;padding:0 0 0 4px;">${blocksHtml}</div></div>
+          </div>`);
+          continue;
+        }
+        userTurns++;
+        if (isSide) sideCount++;
+        const text = contentToText(content);
+        html.push(`<div class="turn${isSide?' sidechain':''}" data-side="${isSide}" data-sys="0">
+          <div class="row">
+            <div class="avatar user">🧑</div>
+            <div class="bubble user">
+              <div class="who">ユーザー <span class="ts">${fmtTime(ts)}</span>${isSide?'<span class="tag">サブエージェント</span>':''}</div>
+              <div class="content">${renderMarkdown(text)}</div>
+            </div>
+          </div>
+        </div>`);
+        continue;
+      }
+
+      if (rec.type === 'assistant' && rec.message){
+        assistantTurns++;
+        if (isSide) sideCount++;
+        if (rec.message.model) models.add(rec.message.model);
+        if (rec.message.usage){
+          inTokens += (rec.message.usage.input_tokens||0) + (rec.message.usage.cache_creation_input_tokens||0);
+          outTokens += (rec.message.usage.output_tokens||0);
+        }
+        const blocks = Array.isArray(rec.message.content) ? rec.message.content : [{type:'text', text: String(rec.message.content||'')}];
+        blocks.forEach(b => { if (b.type === 'tool_use') toolCalls++; });
+        const blocksHtml = blocks.map(b => buildBlockHtml(b, toolNameMap)).join('');
+        html.push(`<div class="turn${isSide?' sidechain':''}" data-side="${isSide}" data-sys="0">
+          <div class="row">
+            <div class="avatar assistant">✨</div>
+            <div class="bubble assistant">
+              <div class="who">Claude <span class="ts">${fmtTime(ts)}</span>${isSide?'<span class="tag">サブエージェント</span>':''}</div>
+              ${blocksHtml}
+            </div>
+          </div>
+        </div>`);
+        continue;
+      }
+
+      if (rec.type === 'system'){
+        html.push(`<div class="turn" data-side="${isSide}" data-sys="1">
+          <div class="meta-note">⚙ system: ${escapeHtml(rec.subtype||'')} ${fmtTime(ts)}</div>
+        </div>`);
+        continue;
+      }
+
+      // queue-operation / attachment / ai-title / mode / last-prompt / others
+      html.push(`<div class="turn" data-side="${isSide}" data-sys="1">
+        <div class="meta-note">・ ${escapeHtml(rec.type||'event')} ${fmtTime(ts)}</div>
+      </div>`);
+    }
+
+    transcriptEl.innerHTML = html.join('');
+    transcriptEl.style.display = 'block';
+    toolbar.style.display = 'block';
+    backToListBtn.style.display = cameFromList ? 'inline-block' : 'none';
+
+    const dur = (firstTs && lastTs) ? Math.round((new Date(lastTs) - new Date(firstTs))/60000) : null;
+    metaEl.innerHTML =
+      `<b>ファイル:</b> ${escapeHtml(filename)} &nbsp; <b>Session ID:</b> ${escapeHtml(sessionId)}<br>` +
+      `<b>作業ディレクトリ:</b> ${escapeHtml(cwd)} &nbsp; <b>バージョン:</b> ${escapeHtml(version)}<br>` +
+      `<b>モデル:</b> ${escapeHtml([...models].join(', ') || '-')}<br>` +
+      `<b>ユーザー発言:</b> ${userTurns} &nbsp; <b>Claude応答:</b> ${assistantTurns} &nbsp; <b>ツール呼び出し:</b> ${toolCalls} &nbsp;` +
+      `<b>サブエージェント発言:</b> ${sideCount}<br>` +
+      `<b>期間:</b> ${fmtTime(firstTs)} 〜 ${fmtTime(lastTs)} ${dur!=null?`(約${dur}分)`:''}<br>` +
+      `<b>トークン(概算):</b> input ${inTokens.toLocaleString()} / output ${outTokens.toLocaleString()}` +
+      (parseErrors ? ` &nbsp; <span style="color:var(--danger)">解析失敗行: ${parseErrors}</span>` : '');
+
+    applyFilters();
+  }
+
+  function applyFilters(){
+    document.querySelectorAll('details.think').forEach(d => d.parentElement.parentElement.style.display = showThink ? '' : 'none');
+    document.querySelectorAll('.turn').forEach(turn => {
+      const isSide = turn.getAttribute('data-side') === 'true';
+      const isSys = turn.getAttribute('data-sys') === '1';
+      let visible = true;
+      if (isSide && !showSide) visible = false;
+      if (isSys && !showSys) visible = false;
+      turn.style.display = visible ? '' : 'none';
+    });
+    document.querySelectorAll('details.tool, details.result').forEach(d => {
+      d.style.display = showTool ? '' : 'none';
+    });
+    document.querySelectorAll('details.think').forEach(d => {
+      d.style.display = showThink ? '' : 'none';
+    });
+  }
+
+  document.getElementById('toggleThink').addEventListener('click', function(){
+    showThink = !showThink; this.classList.toggle('active', showThink); applyFilters();
+  });
+  document.getElementById('toggleTool').addEventListener('click', function(){
+    showTool = !showTool; this.classList.toggle('active', showTool); applyFilters();
+  });
+  document.getElementById('toggleSide').addEventListener('click', function(){
+    showSide = !showSide; this.classList.toggle('active', showSide); applyFilters();
+  });
+  document.getElementById('toggleSys').addEventListener('click', function(){
+    showSys = !showSys; this.classList.toggle('active', showSys); applyFilters();
+  });
+  document.getElementById('expandAll').addEventListener('click', () => {
+    document.querySelectorAll('#transcript details').forEach(d => d.open = true);
+  });
+  document.getElementById('collapseAll').addEventListener('click', () => {
+    document.querySelectorAll('#transcript details').forEach(d => d.open = false);
+  });
+
+  let lastMarks = [];
+  document.getElementById('search').addEventListener('input', function(){
+    lastMarks.forEach(m => {
+      const parent = m.parentNode;
+      if (parent){ parent.replaceChild(document.createTextNode(m.textContent), m); parent.normalize(); }
+    });
+    lastMarks = [];
+    const q = this.value.trim();
+    const info = document.getElementById('searchInfo');
+    if (!q){ info.textContent=''; return; }
+    const walker = document.createTreeWalker(transcriptEl, NodeFilter.SHOW_TEXT, null);
+    const qLower = q.toLowerCase();
+    let count = 0;
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(node => {
+      const val = node.nodeValue;
+      const idx = val.toLowerCase().indexOf(qLower);
+      if (idx === -1) return;
+      const span = document.createElement('span');
+      let rest = val, offset = 0, frag = document.createDocumentFragment();
+      let i;
+      while ((i = rest.toLowerCase().indexOf(qLower)) !== -1){
+        frag.appendChild(document.createTextNode(rest.slice(0,i)));
+        const mark = document.createElement('mark');
+        mark.textContent = rest.slice(i, i+q.length);
+        frag.appendChild(mark);
+        lastMarks.push(mark);
+        count++;
+        rest = rest.slice(i+q.length);
+      }
+      frag.appendChild(document.createTextNode(rest));
+      node.parentNode.replaceChild(frag, node);
+      let d = node.parentElement && node.parentElement.closest ? null : null;
+    });
+    // open details containing matches
+    lastMarks.forEach(m => {
+      let el = m.closest('details');
+      while (el){ el.open = true; el = el.parentElement && el.parentElement.closest('details'); }
+    });
+    info.textContent = count ? `${count} 件ヒット` : '見つかりません';
+    if (lastMarks[0]) lastMarks[0].scrollIntoView({behavior:'smooth', block:'center'});
+  });
+})();
+</script>
+</body>
+</html>

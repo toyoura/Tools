@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>Reply LLM の設定</title>
+  <link rel="stylesheet" href="../popup/popup.css">
+  <style>
+    body { width: auto; max-width: 680px; margin: 0 auto; padding: 32px 24px; font-size: 15px; line-height: 1.7; }
+    h1 { font-size: 20px; margin: 0 0 4px; padding-bottom: 6px; border-bottom: 1px solid var(--accent); }
+    .field { margin-bottom: 18px; }
+    .hint { color: var(--muted); font-size: 13px; }
+    input[type="password"], input[type="text"], input[type="number"] {
+      padding: 6px 8px; border: 1px solid var(--line); border-radius: 3px;
+      background: var(--card); color: var(--text); font: inherit;
+    }
+    textarea { min-height: 90px; }
+    fieldset {
+      border: 1px solid var(--line); border-radius: 3px;
+      padding: 14px 14px 0; margin: 0 0 18px; background: var(--card);
+    }
+    legend { padding: 0 6px; font-weight: 600; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <h1>Reply LLM の設定</h1>
+  <p class="hint">返信の下書きは、選んだプロバイダの API を呼んで書きます。メール本文と、送信済みメールの一部が API に送られます。</p>
+
+  <div class="field">
+    <label for="provider">使う API</label>
+    <select id="provider">
+      <option value="openai">OpenAI</option>
+      <option value="claude">Claude (Anthropic)</option>
+    </select>
+  </div>
+
+  <fieldset id="block-openai">
+    <legend>OpenAI</legend>
+    <div class="field">
+      <label for="openaiKey">API キー</label>
+      <div class="bar">
+        <input type="password" id="openaiKey" placeholder="sk-..." style="flex:1">
+        <button data-reveal="openaiKey">表示</button>
+      </div>
+      <span class="hint">取得は <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">platform.openai.com/api-keys</a></span>
+    </div>
+    <div class="field">
+      <label for="openaiModel">モデル</label>
+      <input type="text" id="openaiModel" placeholder="gpt-5.6-terra">
+      <span class="hint">
+        空欄なら gpt-5.6-terra。速さ優先なら gpt-5.6-luna。
+        Responses API を叩くので、reasoning に対応したモデルを指定してください。
+      </span>
+    </div>
+  </fieldset>
+
+  <fieldset id="block-claude">
+    <legend>Claude</legend>
+    <div class="field">
+      <label for="claudeKey">API キー</label>
+      <div class="bar">
+        <input type="password" id="claudeKey" placeholder="sk-ant-..." style="flex:1">
+        <button data-reveal="claudeKey">表示</button>
+      </div>
+      <span class="hint">取得は <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer">console.anthropic.com</a></span>
+    </div>
+    <div class="field">
+      <label for="claudeModel">モデル</label>
+      <input type="text" id="claudeModel" placeholder="claude-opus-5">
+      <span class="hint">空欄なら claude-opus-5。</span>
+    </div>
+  </fieldset>
+
+  <div class="field">
+    <label for="effort">思考の深さ (effort)</label>
+    <select id="effort">
+      <option value="low">low (速い。短い返信向き)</option>
+      <option value="medium">medium (既定)</option>
+      <option value="high">high (遅いが丁寧)</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="samples">文体の手本にする送信済みメールの数</label>
+    <input type="number" id="samples" min="0" max="10" style="width:6em">
+    <span class="hint">同じ相手に過去1年に送ったメールを新しい順に使います。なければ直近2週間に送ったメールを使います。0 にすると手本を送りません。</span>
+  </div>
+
+  <div class="field">
+    <label for="extraReply">下書きへの追加指示</label>
+    <textarea id="extraReply" placeholder="例: 学生宛ては“さん”付けにする。英語のメールは Best regards で結ぶ。"></textarea>
+  </div>
+
+  <div class="bar">
+    <button id="save" class="primary">保存</button>
+    <button id="test">接続テスト</button>
+    <span id="status" class="hint"></span>
+  </div>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>

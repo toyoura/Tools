@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Round-trip editing of Word forms through Markdown</title>
+  <meta name="description" content="docx-md-roundtrip, a Claude Code skill for editing Word forms such as grant applications with Markdown as the source of truth">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Noto+Serif+JP:wght@500;600&display=swap">
+  <link rel="stylesheet" href="../../../assets/style.css">
+  <link rel="alternate" hreflang="ja" href="https://toyoura.github.io/Tools/articles/docx-md-roundtrip/">
+  <link rel="alternate" hreflang="en" href="https://toyoura.github.io/Tools/en/articles/docx-md-roundtrip/">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <nav class="topbar"><a class="breadcrumb" href="../../">Lab Tools</a><a class="lang" href="../../../articles/docx-md-roundtrip/" hreflang="ja" lang="ja">日本語</a></nav>
+      <div class="tool-title">
+        <img src="../../../assets/icons/docx-md-roundtrip.svg" alt="">
+        <h1>Round-trip editing of Word forms through Markdown</h1>
+      </div>
+      <p class="lead">
+        How I write formatted Word forms, such as grant application templates with fixed instruction boxes and page limits per section, in Markdown and let Claude Code apply them.
+        This article introduces the skill I made for it, docx-md-roundtrip.
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap article">
+    <p><a class="download" href="https://github.com/toyoura/Tools/tree/main/articles/docx-md-roundtrip/skill">View the skill (GitHub)</a></p>
+    <p>The skill was written for Japanese grant forms (JSPS KAKENHI), and its instructions are in Japanese. The approach works for any form with fixed sections.</p>
+
+    <h2>The problem</h2>
+    <p>
+      A grant form has an instruction box for each section (“describe within N pages”) and reserves pages with empty lines.
+      If you keep editing such a docx in place, paragraph styles and the number of empty lines drift a little each time, and the damage accumulates.
+    </p>
+
+    <h2>The idea</h2>
+    <p>
+      Markdown is the source of truth. The filled-in docx is never edited. Every build pours the Markdown into a <b>blank copy of the form</b> and creates the docx from scratch,
+      so formatting damage cannot accumulate. At the end, Word is driven through COM to add or remove empty lines until each section starts on the page the form expects.
+    </p>
+<pre><code>application/
+├── template/s-13.docx   # the blank form; never edited
+├── s-13.md              # source of truth; you write here
+├── s-13.docx            # output; rebuilt every time
+└── figure1.png          # figures to insert</code></pre>
+
+    <h2>Writing the Markdown</h2>
+    <p>The front matter names the blank form and the start page of each section.</p>
+<pre><code>---
+template: template/s-13.docx
+output: s-13.docx
+page_targets: "2=6,3=8,4=9"
+line_spacing: 220
+---
+
+# section: （概要）
+
+Body paragraphs...
+
+# section: ５頁以内で記述すること | table
+
+## (1) Heading
+
+![Figure 1　Overview](figure1.png){width=450}</code></pre>
+    <p>
+      A <code># section:</code> line is an anchor: a string copied exactly from the form that says where the content goes. With <code>| table</code>, the content goes right after the instruction table containing that string.
+    </p>
+    <table>
+      <caption>Table 1. Markdown and the resulting docx</caption>
+      <thead><tr><th>Markdown</th><th>In the docx</th></tr></thead>
+      <tbody>
+        <tr><td><code>## (1) Heading</code></td><td>Bold Gothic heading</td></tr>
+        <tr><td>Plain paragraph</td><td>Mincho, first-line indent, justified</td></tr>
+        <tr><td><code>**[Label]** text</code></td><td>No indent, starts with a bold label</td></tr>
+        <tr><td><code>- item</code></td><td>Hanging bullet</td></tr>
+        <tr><td><code>[1] Author: Title...</code></td><td>Deep hanging indent for references</td></tr>
+        <tr><td><code>![Figure 1　…](x.png){width=450}</code></td><td>Centered figure with caption; width in points</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Workflow</h2>
+    <table>
+      <caption>Table 2. Tasks and scripts</caption>
+      <thead><tr><th>Task</th><th>Script</th></tr></thead>
+      <tbody>
+        <tr><td>Find the page where each section of the form starts</td><td><code>get_baseline.ps1</code></td></tr>
+        <tr><td>Extract text from a filled-in docx (first time)</td><td><code>docx2md.py</code></td></tr>
+        <tr><td>Rebuild the docx from Markdown</td><td><code>md2docx.py</code></td></tr>
+        <tr><td>Match section page boundaries</td><td><code>fit_pages.ps1</code></td></tr>
+        <tr><td>Export to PDF to check the result</td><td><code>topdf.ps1</code></td></tr>
+        <tr><td>Bring edits made in Word back into Markdown</td><td><code>docx2md_sync.py</code></td></tr>
+        <tr><td>Replace only the text, keeping figure positions</td><td><code>patch_body.py</code></td></tr>
+        <tr><td>Measure how many lines overflow</td><td><code>lines_per_page.ps1</code></td></tr>
+      </tbody>
+    </table>
+    <p>
+      Day to day, I edit the Markdown and say “apply s-13.md to the docx”. Claude follows the skill: it runs md2docx and fit_pages, exports a PDF, checks the page count and layout, and then reports.
+    </p>
+
+    <h2>Lessons from using it</h2>
+    <h3>Always bring Word edits back to the Markdown</h3>
+    <p>
+      The docx often gets edited directly in Word, and a rebuild would wipe those edits. The skill tells Claude to compare the docx timestamp with the last build first; if the docx is newer, it is merged into the Markdown with <code>docx2md_sync.py</code> before anything else.
+    </p>
+    <h3>After adjusting figures by hand, do not rebuild</h3>
+    <p>
+      A rebuild also discards figure positions and sizes set in Word. In that case <code>patch_body.py</code> replaces only the text paragraphs and leaves the figures alone.
+    </p>
+    <h3>When a page overflows, cut what is said twice</h3>
+    <p>
+      When <code>fit_pages.ps1</code> reports OVERFLOW, the number of overflowing lines is exactly how much to cut. Cut repetition before content:
+      an application often states the same claim three times, in the summary, the body and the methods, and that is usually enough.
+    </p>
+    <h3>Pitfalls on Japanese Windows</h3>
+    <ul>
+      <li>Run Python with <code>PYTHONUTF8=1</code>; otherwise file I/O goes through cp932 and breaks.</li>
+      <li>Do not redirect docx2md.py output with PowerShell’s <code>&gt;</code>; it passes through the console encoding and garbles the text.</li>
+      <li>Word COM returns stale page numbers unless you call <code>Repaginate()</code>.</li>
+      <li>Do not keep the target docx open in Word; saves will collide.</li>
+    </ul>
+
+    <h2>Requirements and setup</h2>
+    <ul>
+      <li>Windows, Microsoft Word (COM for page fitting and PDF export), Python 3 (standard library only)</li>
+      <li>Place the <a href="https://github.com/toyoura/Tools/tree/main/articles/docx-md-roundtrip/skill">skill</a> folder at <code>~/.claude/skills/docx-md-roundtrip/</code>. Claude Code then uses it for requests such as “update the application” or “turn this docx into Markdown”.</li>
+    </ul>
+    <p>
+      If you have no blank form, do not use a filled-in docx as the template; the content would appear twice. Get a fresh blank form from the distributor.
+    </p>
+<p>Released under <a href="https://unlicense.org">The Unlicense</a>. Use, change and share it freely. It comes with no warranty, and I am not liable for any damage caused by its use.</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="../../">Back to the list</a></p>
+    </div>
+  </footer>
+</body>
+</html>

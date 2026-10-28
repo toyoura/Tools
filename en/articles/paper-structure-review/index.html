@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reviewing the structure of student papers</title>
+  <meta name="description" content="paper-structure-review, a Claude Code skill that makes the logical structure of a student draft visible with a reverse outline and a claim-evidence table">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Noto+Serif+JP:wght@500;600&display=swap">
+  <link rel="stylesheet" href="../../../assets/style.css">
+  <link rel="alternate" hreflang="ja" href="https://toyoura.github.io/Tools/articles/paper-structure-review/">
+  <link rel="alternate" hreflang="en" href="https://toyoura.github.io/Tools/en/articles/paper-structure-review/">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <nav class="topbar"><a class="breadcrumb" href="../../">Lab Tools</a><a class="lang" href="../../../articles/paper-structure-review/" hreflang="ja" lang="ja">日本語</a></nav>
+      <div class="tool-title">
+        <img src="../../../assets/icons/paper-structure-review.svg" alt="">
+        <h1>Reviewing the structure of student papers</h1>
+      </div>
+      <p class="lead">
+        A way to mark up a student’s paper draft at the level of structure, not wording.
+        The Claude Code skill paper-structure-review produces a reverse outline and a table matching claims to evidence.
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap article">
+    <p><a class="download" href="https://github.com/toyoura/Tools/tree/main/articles/paper-structure-review/skill">View the skill (GitHub)</a></p>
+    <p>The skill is written in Japanese and its output is in Japanese, but it reads English drafts as well.</p>
+
+    <h2>The problem</h2>
+    <p>
+      What needs fixing in a student draft is usually its structure rather than typos or phrasing: the order of sections, claims that their evidence does not support, discussion in the wrong place.
+      But when you read from the top and mark as you go, your eyes are pulled to the wording. Structural defects are hard to see one paragraph at a time.
+    </p>
+
+    <h2>The idea</h2>
+    <h3>Separate the layers</h3>
+    <p>
+      Mixing wording (typos, phrasing, LaTeX) with structure (logic, section order, support for claims) leaves both half done. This skill does structure only.
+      Wording goes to a separate review file, and any overlap is tagged “[already in the wording review]”.
+    </p>
+    <h3>Let the student do the rewriting</h3>
+    <p>
+      The skill stops at a list of instructions and never touches the text. The student first fixes the outline, gets it approved, and only then rewrites the paper.
+      The order is there so that the student, not the tool, learns to build an argument.
+    </p>
+
+    <h2>Output</h2>
+    <p>The skill writes <code>memo/structure_review.md</code> next to the draft, always in four parts.</p>
+    <table>
+      <caption>Table 1. Parts of structure_review.md</caption>
+      <thead><tr><th>Part</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td>1. Reverse outline</td><td>Each paragraph’s claim compressed to one sentence, numbered. Repetition, leaps, misordering and empty sections stand out</td></tr>
+        <tr><td>2. Claim-evidence table</td><td>For each claim, where the supporting experiment, figure or citation is, and a verdict: unsupported, contradictory or overstated</td></tr>
+        <tr><td>3. Structural instructions</td><td>Numbered S1, S2, … by priority. Each says which paragraph, where to, and why</td></tr>
+        <tr><td>4. How to use</td><td>How the teacher and the student work with the document</td></tr>
+      </tbody>
+    </table>
+    <p>A claim-evidence table looks like this (a fictional example):</p>
+    <table>
+      <caption>Table 2. Example claim-evidence table</caption>
+      <thead><tr><th>#</th><th>Claim (where)</th><th>Evidence</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td>The method works with little data (Sec. 1 ¶3)</td><td>None in the text</td><td><b>Unsupported</b>. Add an experiment varying data size, or weaken the claim</td></tr>
+        <tr><td>B</td><td>Accuracy equal to or better than the baseline (abstract)</td><td>Table 3: 0.91 vs 0.93</td><td><b>Overstated</b>. The number is below the baseline</td></tr>
+        <tr><td>C</td><td>Computation time halved (Sec. 5)</td><td>Table 4</td><td>OK, but missing from the contribution list in Sec. 1</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Defects it looks for</h2>
+    <p>The skill carries a checklist of patterns that keep appearing in student papers.</p>
+    <ul>
+      <li>The result stressed most in the abstract and conclusion is not in the contribution list. Or a listed contribution is never shown in the experiments.</li>
+      <li>The introduction promises something the body never supports.</li>
+      <li>The premises in the introduction contradict the experimental conclusions or limitations.</li>
+      <li>A number lower than the baseline is described as “comparable or better”.</li>
+      <li>Sections that set something up but never connect to the conclusion; experiments tied to no claim.</li>
+      <li>New discussion buried in the conclusion instead of the discussion section.</li>
+      <li>The same content explained twice, in the method and the experiment sections.</li>
+      <li>Paragraphs that do not start from known information, so a topic appears with no link to the previous paragraph.</li>
+    </ul>
+
+    <h2>How we use it</h2>
+    <ol>
+      <li><b>Teacher</b>: approves, rejects or edits S1…Sn, writing directly in structure_review.md.</li>
+      <li><b>Student</b>: applies the approved instructions to the reverse outline first, gets the revised outline checked, and only then rewrites the text.</li>
+      <li>Typos and phrasing follow the separate wording review.</li>
+    </ol>
+    <p>
+      On later rounds, the existing structure_review.md is not overwritten; only resolved and new issues are updated.
+      For drafts synced between Overleaf and git, <code>memo/structure_review.md</code> can be shared with the student while the teacher’s private notes stay local.
+    </p>
+
+    <h2>What it must not do</h2>
+    <ul>
+      <li>Edit the paper (.tex or .docx). Its only output is structure_review.md.</li>
+      <li>Invent evidence to fill the table. If there is none, it writes “none in the text”, which is often the most important finding.</li>
+      <li>Give bare orders. Each instruction says why the structure is a problem, and open questions come with two options.</li>
+    </ul>
+
+    <h2>Setup</h2>
+    <p>
+      Put <a href="https://github.com/toyoura/Tools/tree/main/articles/paper-structure-review/skill">SKILL.md</a> in <code>~/.claude/skills/paper-structure-review/</code>.
+      In the draft’s folder, ask Claude Code to “review the structure of this paper” or “make a reverse outline”, and it will use the skill.
+      LaTeX drafts can be one file or split with <code>\input</code>. For Word drafts, the text is extracted first.
+    </p>
+<p>Released under <a href="https://unlicense.org">The Unlicense</a>. Use, change and share it freely. It comes with no warranty, and I am not liable for any damage caused by its use.</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="../../">Back to the list</a></p>
+    </div>
+  </footer>
+</body>
+</html>
